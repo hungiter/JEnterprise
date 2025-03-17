@@ -1,0 +1,37 @@
+SpringBoot Settings:
+Language: Java (Java 17)
+Spring Boot 3.4.3
+Thêm nhanh lúc init:
+✅ Lombok → Giảm code boilerplate
+✅ Spring Boot Starter Web → Xây dựng API
+✅ Spring Boot Starter Security → Authentication & Authorization
+✅ Spring Boot Starter OAuth2 Resource Server → JWT Authentication
+✅ Spring Boot Starter Data MongoDB → Kết nối MongoDB
+✅ Spring Boot Starter Data Redis → Caching với Redis
+Thêm qua pom.xml
+✅ Spring Boot Starter Test → Viết test với JUnit
+✅ Spring Boot Starter Cache → Kích hoạt caching
+
+Optional:
+✅ Spring Boot DevTools → Hỗ trợ phát triển
+✅ Spring Boot Starter Actuator → Theo dõi hệ thống
+✅ Spring Boot Starter Validation → Validate dữ liệu
+
+
+MongoDB Cluster:
+Connection Security:
+ JENterprise-Cluster
+ Connection IP Address:
+  58.187.123.30 : FPT Tân Thuận
+ Database user
+  admin : hungnt121@gmail.com
+Connection method: Drivers
+ Drive - Java 5.1 or later
+
+
+Sử dụng kiến trúc: Clean Architecture kết hợp Layered Architecture
+Giúp tổ chức code rõ ràng, dễ bảo trì và mở rộng.
+
+
+
+ 
