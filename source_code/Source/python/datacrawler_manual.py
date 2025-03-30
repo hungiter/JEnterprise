@@ -7,6 +7,19 @@ Original file is located at
     https://colab.research.google.com/drive/1Y1orQo3rkerhkGU4PCio7l5IkC-DfaJm
 """
 
+!python -m pip install "pymongo[srv]"==3.11
+!pip install requests
+
+import requests
+import json
+
+import certifi
+from pymongo import MongoClient
+from urllib.parse import quote_plus
+
+from dateutil import parser
+from datetime import datetime
+
 COUNTRY_ID = "VN"
 
 API_KEYS = ["HG23wq9Qv84ZKe7AYbsKDm8CtQkJuM00","sdTfAAfKz6qRglbYVr9oRAHjgs89A7ce","miAUi2SsXWhP8xENbcsjbihhAd3Ui6u7","03SOqMhpQGGMoG1GLLcTSkKtAnpKxbWA","Xjf1OLB4JwiRgkqlOAPgxqHnv2adG1GI"]
@@ -24,22 +37,6 @@ WEATHER_TABLE = "weathers"
 
 # MONGO_URI = f"mongodb+srv://{USER}:{PASS}@{HOST}/{DB_NAME}?retryWrites=true&w=majority"
 MONGO_URI = f"mongodb+srv://{USER}:{PASS}@{HOST}/{DB_NAME}?retryWrites=true&w=majority&appName=JENterprise-Cluster"
-
-"""# **Thư viện**
-
-"""
-
-!python -m pip install "pymongo[srv]"==3.11
-!pip install requests
-
-import requests
-import json
-
-import certifi
-from pymongo import MongoClient
-from urllib.parse import quote_plus
-
-from dateutil import parser
 
 """# Data Processing"""
 
@@ -571,7 +568,7 @@ def saveWeather_to_mongodb(data):
 
         # Lưu dữ liệu (cập nhật nếu đã có)
         for weather in data:
-            collection.update_one({"ID": f"{weather['area_id']}{weather['date']}"}, {"$set": weather}, upsert=True)
+          collection.update_one({"date": weather["date"], "area_id": weather["area_id"]}, {"$set": weather}, upsert=True)
 
         print("✅ Dữ liệu đã được lưu vào MongoDB.")
     except Exception as e:
@@ -580,101 +577,134 @@ def saveWeather_to_mongodb(data):
 """##### Get From MongoDB"""
 
 from collections.abc import Collection
-def getProvinces_mongodb(mongo_uri, db_name, collection_name):
+def getList_mongodb(mongo_uri, db_name, collection_name):
     try:
         client = MongoClient(MONGO_URI, tls=True, tlsAllowInvalidCertificates=True)
         db = client[db_name]
         collection = db[collection_name]
-        provinces = []
+        items = []
         collection.find()
-        for province in collection.find():
-            provinces.append(province)
-        return provinces
+        for item in collection.find():
+            items.append(item)
+        return items
     except Exception as e:
         print(f"❌ Lỗi kết nối MongoDB: {e}")
         return []
 
-"""# **Triển khai**
+"""# **Triển khai**"""
 
-#### Khởi tạo + Kiểm tra
-"""
+# currentTime = "00:00:00"
+currentTime = "00:00:01" # Test
+forceUpdateCountry = False
 
-vietnam_areas = getProvinces_mongodb(MONGO_URI, DB_NAME, PROVINCES_TABLE)
-provincesEmpty = vietnam_areas.count == 0  or vietnam_areas == []
+# Khởi tạo + Kiểm tra
+vietnam_areas = []
+provincesEmpty = False
 def updateGlobal():
   global vietnam_areas
   global provincesEmpty
-  vietnam_areas = getProvinces_mongodb(MONGO_URI, DB_NAME, PROVINCES_TABLE)
+  vietnam_areas = getList_mongodb(MONGO_URI, DB_NAME, PROVINCES_TABLE)
   provincesEmpty = vietnam_areas.count == 0  or vietnam_areas == []
 
-"""#### Lấy thông tin thành phố và lưu vào MongoDB"""
+if (currentTime == "00:00:00"):
+  currentTime = datetime.now().strftime("%H:%M:%S")
+  updateGlobal()
 
-if provincesEmpty:
-  # Lấy danh sách tỉnh/thành từ AccuWeather
-  new_vietnam_areas = getAreasInfo()
+  #Lấy thông tin thành phố và lưu vào MongoDB (Nếu chưa có)
+  print("Dữ liệu tỉnh/thành")
+  if(provincesEmpty or forceUpdateCountry):
+    # Lấy danh sách tỉnh/thành từ AccuWeather
+    vietnam_areas = getAreasInfo()
 
-  # Get more info of country
-  for area in new_vietnam_areas:
-    try:
-      area_info = getAreaInfo(area['searchName'])
-      area['lat'] = f"{area_info['lat']}"
-      area['lon'] = f"{area_info['lon']}"
-      area['key'] = f"{area_info['key']}"
-      area['localName'] = f"{area_info['localName']}"
-      area['englishName'] = f"{area_info['englishName']}"
-    except:
-      pass
-
-  # Lưu vào MongoDB
-  if new_vietnam_areas:
-    save_to_mongodb(new_vietnam_areas, MONGO_URI, DB_NAME, PROVINCES_TABLE)
-  else:
-    print(f"Không tìm thấy tỉnh/thành nào thuộc {COUNTRY_ID}")
-else:
-  hasUpdate = False
-  for area in vietnam_areas:
-    try:
-      if area['lat'] == "" or area['lon'] == "" or area['key'] == "" or area['localName'] == "" or area['englishName'] == "":
-        area_info = getAreaInfo(API_KEY, area['searchName'])
+    # Get more info of country
+    for area in vietnam_areas:
+      try:
+        area_info = getAreaInfo(area['searchName'])
         area['lat'] = f"{area_info['lat']}"
         area['lon'] = f"{area_info['lon']}"
         area['key'] = f"{area_info['key']}"
         area['localName'] = f"{area_info['localName']}"
         area['englishName'] = f"{area_info['englishName']}"
-        if hasUpdate == False:
-          hasUpdate = True
-    except:
-      print("Lỗi khi lấy thông tin")
+      except:
+        pass
 
-  if hasUpdate:
-    save_to_mongodb(vietnam_areas, MONGO_URI, DB_NAME, PROVINCES_TABLE)
-    print(f"Đã cập nhật thông tin trong database {DB_NAME}.{PROVINCES_TABLE}")
+    # Lưu vào MongoDB
+    if vietnam_areas:
+      save_to_mongodb(vietnam_areas, MONGO_URI, DB_NAME, PROVINCES_TABLE)
+    else:
+      print(f"- Không tìm thấy tỉnh/thành nào thuộc {COUNTRY_ID}")
   else:
-    print("Không có thông tin cần cập nhật")
-updateGlobal()
+    hasUpdate = False
+    for area in vietnam_areas:
+      try:
+        if area['lat'] == "" or area['lon'] == "" or area['key'] == "" or area['localName'] == "" or area['englishName'] == "":
+          area_info = getAreaInfo(API_KEY, area['searchName'])
+          area['lat'] = f"{area_info['lat']}"
+          area['lon'] = f"{area_info['lon']}"
+          area['key'] = f"{area_info['key']}"
+          area['localName'] = f"{area_info['localName']}"
+          area['englishName'] = f"{area_info['englishName']}"
+          if hasUpdate == False:
+            hasUpdate = True
+      except:
+        print("- Lỗi khi lấy thông tin")
+
+    if hasUpdate:
+      save_to_mongodb(vietnam_areas, MONGO_URI, DB_NAME, PROVINCES_TABLE)
+      print(f"- Đã cập nhật thông tin trong database {DB_NAME}.{PROVINCES_TABLE}")
+    else:
+      print("- Không có thông tin cần cập nhật")
+  updateGlobal()
+
+  # Lấy thông tin thời tiết dựa trên key đã có
+  print("Lấy thông tin thời tiết")
+  ## Lấy key để search qua api
+  area_keys = []
+  try:
+    for area in vietnam_areas:
+        if area["key"] != "":
+          area_keys.append(area["key"])
+  except:
+    print("- Lỗi khi lấy key")
+
+  keys_size = len(area_keys)
+  if keys_size > 0:
+    print(f"- {keys_size} key hợp lệ")
+    weather_data = []
+    for area_key in area_keys:
+      try:
+        weather = getArea5DayWeather(area_key)
+        infos = weatherInfoToMongoItem(weather, area_key)
+        for info in infos:
+          weather_data.append(info)
+      except:
+        pass
+    saveWeather_to_mongodb(weather_data)
+else:
+  print("Chưa tới thời gian cập nhật dữ liệu 00:00:00")
 
 """#### Lấy thông tin thời tiết theo key"""
 
-area_keys = []
-for area in vietnam_areas:
-  if area["key"] != "":
-    area_keys.append(area["key"])
+# area_keys = []
+# for area in vietnam_areas:
+#   if area["key"] != "":
+#     area_keys.append(area["key"])
 
 
-keys_size = len(area_keys)
-if keys_size > 0:
-  print(f"{keys_size} key hợp lệ")
-else:
-  print("Không có key nào hợp lệ")
+# keys_size = len(area_keys)
+# if keys_size > 0:
+#   print(f"{keys_size} key hợp lệ")
+# else:
+#   print("Không có key nào hợp lệ")
 
-weather_data = []
-for area_key in area_keys:
-  try:
-    weather = getArea5DayWeather(area_key)
-    infos = weatherInfoToMongoItem(weather,area)
-    for info in infos:
-      weather_data.append(info)
-  except:
-    pass
+# weather_data = []
+# for area_key in area_keys:
+#   try:
+#     weather = getArea5DayWeather(area_key)
+#     infos = weatherInfoToMongoItem(weather, area_key)
+#     for info in infos:
+#       weather_data.append(info)
+#   except:
+#     pass
 
-saveWeather_to_mongodb(weather_data)
+# saveWeather_to_mongodb(weather_data)
