@@ -1,0 +1,76 @@
+import { useParams, Link } from "react-router-dom";
+import { tours } from "../../services/data";
+import { Card, CardContent } from "~/src/components/ui/card";
+import { Section } from "~/src/components/ui/section";
+
+export default function TourDetail() {
+  const { id } = useParams<{ id: string }>();
+  const tour = tours.find((t) => t.id === (id));
+
+  if (!tour) return <div className="text-center text-red-500">Không tìm thấy tour</div>;
+
+  return (
+    // <div className="container mx-auto p-4">
+    //   <h1 className="text-3xl font-bold mb-4">{tour.title}</h1>
+    //   <img src={tour.img} alt={tour.title} className="w-full max-w-xl h-96 object-cover rounded-lg" />
+    //   <p className="text-xl text-red-500 mt-4 font-bold">Giá: {tour.price}</p>
+    //   <p className="text-gray-700 mt-2">Khởi hành từ: {tour.startCity}</p>
+    //   <p className="text-gray-700">Ngày khởi hành: {tour.startDates.join(", ")}</p>
+    // </div>
+
+    <div className="container mx-auto text-black">
+      <h1 className="text-3xl font-bold mb-4">{tour.title}</h1>
+
+      <div className="container mx-auto">
+        <div className="flex flex-col md:flex-row gap-6">
+          <div className="lg:w-3/4 md:w-2/3 bg-gray-100 rounded-lg">
+            <Card className="container mx-auto">
+              <CardContent className="flex flex-col md:flex-row gap-6">
+                <img src={tour.img} alt={tour.title} className="w-full max-w-xl h-96 object-cover rounded-lg" />
+              </CardContent>
+            </Card>
+
+            <Card className="container mx-auto mt-4">
+              <CardContent className="flex flex-col md:flex-row gap-6">
+                <img src={tour.img} alt={tour.title} className="w-full max-w-xl h-96 object-cover rounded-lg" />
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="hidden sm:none md:block lg:w-1/4 md:w-1/3 rounded-lg">
+            <Card className="container mx-auto text-black">
+              <CardContent>
+                <p className="mb-2 text-2xl">
+                  <strong className="text-xl ">Giá từ:</strong>
+                </p>
+                <p className="mb-2 text-2xl">
+                  <strong className="text-red-500">{tour.price} ₫</strong> <span className="text-sm font-semibold">/ Khách</span>
+                </p>
+
+                <p className="flex flex-col md:flex-row gap-2">
+                  <div className="flex flex-col md:flex-row gap-2 md:w-3/5 ">
+                    <img src={tour.img} alt="" className="object-cover rounded-lg" height={20} width={20} />
+                    <div>Mã chương trình:</div>
+                  </div>
+                  <div className="md:w-2/5 font-bold">{tour.id}</div>
+                </p>
+
+                <p className="mt-2">
+                  <Link to={`/tours/${tour.id}`}>
+                    <button className="bg-blue-500 md:w-full text-white px-4 py-2 rounded">
+                      <div className="flex flex-col md:flex-row items-center justify-center gap-2 w-full h-full">
+                        <img src={tour.img} alt="" className="object-cover rounded-lg" height={10} width={20} />
+                        <div className="text-sm font-semibold">Chọn ngày khởi hành</div>
+                      </div>
+                    </button>
+
+                  </Link>
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

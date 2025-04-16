@@ -1,3 +1,4 @@
+import type { Route } from "./+types/DashBoardPage";
 export function meta({ }: Route.MetaArgs) {
     return [
         { title: "Dashboard" },

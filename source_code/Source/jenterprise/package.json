@@ -9,8 +9,10 @@
     "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
+    "@react-router/dev": "^7.3.0",
     "@react-router/node": "^7.3.0",
     "@react-router/serve": "^7.3.0",
+    "@types/react-native-vector-icons": "^6.4.18",
     "dayjs": "^1.11.13",
     "isbot": "^5.1.17",
     "react": "^19.0.0",
@@ -19,7 +21,6 @@
     "react-router-dom": "^7.3.0"
   },
   "devDependencies": {
-    "@react-router/dev": "^7.3.0",
     "@tailwindcss/vite": "^4.0.0",
     "@types/node": "^20",
     "@types/react": "^19.0.1",
