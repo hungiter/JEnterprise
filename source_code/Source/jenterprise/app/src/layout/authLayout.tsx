@@ -1,24 +1,13 @@
-import {
-    Links,
-    Meta,
-    Scripts,
-    ScrollRestoration,
-  } from "react-router";
+import {  Outlet } from "react-router-dom";
+import Header from "../components/Header";
 
-export function Layout({ children }: { children: React.ReactNode }) {
-    return (
-      <html lang="en">
-        <head>
-          <meta charSet="utf-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1" />
-          <Meta />
-          <Links />
-        </head>
-        <body>
-          {children}
-          <ScrollRestoration />
-          <Scripts />
-        </body>
-      </html>
-    );
-  }
+export default function AuthLayout() {
+  return (
+    <div className="bg-white-100 min-h-screen">
+      <Header />
+      <div className="container mx-auto py-6 px-4">
+        <Outlet /> {/* Đây là nơi render các trang con */}
+      </div>
+    </div>
+  );
+}
