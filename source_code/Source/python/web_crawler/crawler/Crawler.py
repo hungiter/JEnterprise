@@ -13,11 +13,16 @@ cache = diskcache.Cache("cache")  # lưu vào thư mục cache/
 
 def get_tour_from_html(url: str, html: str):
     soup = BeautifulSoup(html, 'html.parser')
-    tour_detail = TourDetail(id="tester")
+    tour_detail = TourDetail()
     tour_div = soup.find('div', class_='tour--detail__content--left')
     try:
         tour_image_thumbnails = []
         tour_image_main = ""
+        tour_sightseeing_spots = ""
+        tour_cuisine = ""
+        tour_suitable_customers = ""
+        tour_ideal_times = ""
+        tour_vehicles = ""
         try:
             image_div = tour_div.findChild(
                 'div', class_='image-gallery')
@@ -37,10 +42,49 @@ def get_tour_from_html(url: str, html: str):
                         tour_image_main = image_div['src']
 
                 image_div.decompose()
+
+            overview_div = tour_div.findChild(
+                'div', class_='tour-overview')
+            if overview_div:
+                overview_item_divs = overview_div.find_all(
+                    "div", "tour--detail__content--left--overview__content-item")
+                for overview_item_div in overview_item_divs:
+                    overview_title = overview_item_div.find(
+                        "div", "tour--detail__content--left--overview__content-title")
+                    overview_info = overview_item_div.find("p")
+                    title_text = overview_title.text
+                    info_text = overview_info["title"]
+
+                    match title_text:
+                        case "Điểm tham quan":
+                            tour_sightseeing_spots = info_text
+                        case "Ẩm thực":
+                            tour_cuisine = info_text
+                        case "Đối tượng thích hợp":
+                            tour_suitable_customers = info_text
+                        case "Thời gian lý tưởng":
+                            tour_ideal_times = info_text
+                        case "Phương tiện":
+                            tour_vehicles = info_text
+                overview_div.decompose()
+            
+
+            schedule_div = tour_div.findChild(
+                'div', class_='tour-schedule')
+            if schedule_div:
+                print(schedule_div)
         except Exception as e:
             pass
 
-        get_detail_info(detail_url=url)
+        tour_detail = TourDetail(
+            img_main=tour_image_main,
+            img_thumbnails=tour_image_thumbnails,
+            sightseeing_spots=tour_sightseeing_spots,
+            cuisine=tour_cuisine,
+            suitable_customers=tour_suitable_customers,
+            ideal_times=tour_ideal_times,
+            vehicles=tour_vehicles
+        )
     except Exception as e:
         print(f"Error extracting a tour: {e}")
 
@@ -48,7 +92,7 @@ def get_tour_from_html(url: str, html: str):
 
 
 def fetch_tour(url: str, tour_id: str):
-    tour_detail = TourDetail(id="Idk")
+    tour_detail = TourDetail()
     try:
         raw_data = ""
         if tour_id in cache:
@@ -93,7 +137,7 @@ def get_tours_from_html(html: str):
             tour_price_value = 0
             tour_price_text = ""
             tour_detail_link = ""
-            tour_detail = TourDetail(id="Test")
+            tour_detail = TourDetail()
             try:
                 thumbnail_div = tour_div.findChild(
                     'div', class_='card-filter-desktop__thumbnail')
@@ -102,10 +146,11 @@ def get_tours_from_html(html: str):
                     if thumbnail_img:
                         tour_thumbnail = thumbnail_img['src']
 
-                    tour_tag_div = tour_info_div.find(
-                        'div', class_=lambda x: x and 'tour-card--tags__tag ' in x.split())
+                    tour_tag_div = thumbnail_div.find(
+                        'div', class_=lambda x: x and 'tour-card--tags__tag' in x.split())
                     if tour_tag_div:
-                        tour_tag = tour_tag_div['span'].text
+                        tour_span_tag = tour_tag_div.findChild('span')
+                        tour_tag = tour_span_tag.text
 
                     thumbnail_div.decompose()
             except Exception as e:
@@ -169,8 +214,7 @@ def get_tours_from_html(html: str):
             if index == 0:
                 index = index+1
                 try:
-                    tmp = fetch_tour(tour_detail_link, tour_id)
-                    print(f"Test TourDetail: {tmp}")
+                    tour_detail = fetch_tour(tour_detail_link, tour_id)
                 except Exception as e:
                     pass
 
