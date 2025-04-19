@@ -44,30 +44,33 @@ def get_tour_from_html(url: str, html: str):
                 image_div.decompose()
 
             overview_div = tour_div.findChild(
-                'div', class_='tour-overview')
+                'div', class_='section-detail tour--detail__content--left--overview tour-overview')
             if overview_div:
-                overview_item_divs = overview_div.find_all(
-                    "div", "tour--detail__content--left--overview__content-item")
-                for overview_item_div in overview_item_divs:
-                    overview_title = overview_item_div.find(
-                        "div", "tour--detail__content--left--overview__content-title")
-                    overview_info = overview_item_div.find("p")
-                    title_text = overview_title.text
-                    info_text = overview_info["title"]
+                overview_info_div = overview_div.findChild(
+                    'div', class_='tour--detail__content--left--overview__content'
+                )
 
-                    match title_text:
-                        case "Điểm tham quan":
-                            tour_sightseeing_spots = info_text
-                        case "Ẩm thực":
-                            tour_cuisine = info_text
-                        case "Đối tượng thích hợp":
-                            tour_suitable_customers = info_text
-                        case "Thời gian lý tưởng":
-                            tour_ideal_times = info_text
-                        case "Phương tiện":
-                            tour_vehicles = info_text
+                if overview_info_div:
+                    overview_item_divs = overview_info_div.findAll(
+                        "div", lambda x: x and 'tour--detail__content--left--overview__content-item' in x.split())
+                    for overview_item_div in overview_item_divs:
+                        overview_title = overview_item_div.find(
+                            "div", "tour--detail__content--left--overview__content-title")
+                        overview_info = overview_item_div.find("p")
+                        title_text = overview_title.text
+                        info_text = overview_info["title"]
+                        match title_text:
+                            case "Điểm tham quan":
+                                tour_sightseeing_spots = info_text
+                            case "Ẩm thực":
+                                tour_cuisine = info_text
+                            case "Đối tượng thích hợp":
+                                tour_suitable_customers = info_text
+                            case "Thời gian lý tưởng":
+                                tour_ideal_times = info_text
+                            case "Phương tiện":
+                                tour_vehicles = info_text
                 overview_div.decompose()
-            
 
             schedule_div = tour_div.findChild(
                 'div', class_='tour-schedule')
@@ -212,11 +215,15 @@ def get_tours_from_html(html: str):
                 pass
 
             if index == 0:
-                index = index+1
+                index = index + 1
                 try:
                     tour_detail = fetch_tour(tour_detail_link, tour_id)
                 except Exception as e:
-                    pass
+                    pass    
+            # try:
+            #     tour_detail = fetch_tour(tour_detail_link, tour_id)
+            # except Exception as e:
+            #     pass    
 
             tour = Tour(
                 tour_code=tour_id,
