@@ -2,6 +2,7 @@ from pymongo import MongoClient
 from urllib.parse import quote_plus
 from typing import List
 from crawler.TourModel import Tour
+import json
 
 # Cấu hình MongoDB
 USER = "admin"
@@ -17,4 +18,6 @@ def update_tours(data:List[Tour], many=False):
     db = client[DB_NAME]
     collection = db[TOURS_TABLE]
     print(f"✅ Đã chọn collection: {collection}")
+    for tour in data:
+        collection.update_one({"tour_code": tour.tour_code}, {"$set": tour.dict()}, upsert=True)
     return True
