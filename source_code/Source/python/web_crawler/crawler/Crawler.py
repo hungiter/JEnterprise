@@ -214,16 +214,16 @@ def get_tours_from_html(html: str):
             except Exception as e:
                 pass
 
-            if index == 0:
-                index = index + 1
-                try:
-                    tour_detail = fetch_tour(tour_detail_link, tour_id)
-                except Exception as e:
-                    pass    
-            # try:
-            #     tour_detail = fetch_tour(tour_detail_link, tour_id)
-            # except Exception as e:
-            #     pass    
+            # if index == 0:
+            #     index = index + 1
+            #     try:
+            #         tour_detail = fetch_tour(tour_detail_link, tour_id)
+            #     except Exception as e:
+            #         pass
+            try:
+                tour_detail = fetch_tour(tour_detail_link, tour_id)
+            except Exception as e:
+                pass
 
             tour = Tour(
                 tour_code=tour_id,
@@ -247,24 +247,18 @@ def get_tours_from_html(html: str):
 
 def fetch_tours(url: str, data_name: str):
     try:
-        raw_data_name = "raw_data"
-        raw_data = ""
-        if raw_data_name in cache:
-            raw_data = cache[raw_data_name]
-        else:
-            options = Options()
-            options.add_argument("--headless")
-            options.add_argument(
-                "--disable-blink-features=AutomationControlled")
-            options.add_argument(
-                "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
+        options = Options()
+        options.add_argument("--headless")
+        options.add_argument(
+            "--disable-blink-features=AutomationControlled")
+        options.add_argument(
+            "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
 
-            driver = webdriver.Chrome(options=options)
-            driver.get(url)
-            time.sleep(5)  # Wait JS render
-            raw_data = driver.page_source
-            cache.set(raw_data_name, raw_data, expire=3600)
-            driver.close()
+        driver = webdriver.Chrome(options=options)
+        driver.get(url)
+        time.sleep(5)  # Wait JS render
+        raw_data = driver.page_source
+        driver.close()
 
         data = get_tours_from_html(raw_data)
         cache.set(data_name, data, expire=3600)
