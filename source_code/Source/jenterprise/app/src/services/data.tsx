@@ -92,8 +92,63 @@ export const tours = [
         title: "Tour Hà Nội - Lạng Sơn 3N2Đ",
         price: "2,990,000đ",
         startCity: "Hà Nội",
-        startDates: ["2023-10-10", "2023-10-20"],
-        img: "https://cdn3.ivivu.com/2023/09/du-lich-lang-son-ivivu-3-250x250.jpg",
+        startDates: ["2023-10-10", "2023-10-20", "2025-06-16", "2025-05-16"],
+        img: "https://media.travel.com.vn/Tour/tfd__2_13054_meo-vac-and-dong-van-town1.webp",
+        images: [
+            "https://media.travel.com.vn/Tour/tfd__2_13054_meo-vac-and-dong-van-town1.webp",
+            "https://media.travel.com.vn/Tour/tfd__2_13054_hanh-trinh-cao-bang.webp",
+            "https://media.travel.com.vn/Tour/tfd__2_13054-lung-cu-flag-tower.webp",
+            "https://media.travel.com.vn/Tour/tfd__2_13054-ban-gioc-waterfall.webp"
+        ],
+        itinerary: [
+            {
+                day: 1,
+                title: "Khởi hành từ Hà Nội – tham quan Lạng Sơn",
+                description: "Sáng tập trung tại điểm hẹn, di chuyển đến Lạng Sơn. Tham quan Đền Kỳ Cùng, chợ Đông Kinh..."
+            },
+            {
+                day: 2,
+                title: "Khám phá núi Mẫu Sơn",
+                description: "Lên núi Mẫu Sơn ngắm cảnh, khám phá các bản làng dân tộc Dao. Chiều tự do khám phá ẩm thực địa phương."
+            },
+            {
+                day: 3,
+                title: "Về lại Hà Nội",
+                description: "Tham quan mua sắm đặc sản, sau đó lên xe quay về Hà Nội. Kết thúc chuyến đi lúc chiều tối."
+            }
+        ],
+        extraInfo: [
+            {
+                icon: "location",
+                title: "Điểm tham quan",
+                desc: "Đông Bắc, Hà Giang, Lũng Cú, Đồng Văn, Mã Pí Lèng, Mèo Vạc, Cao Bằng, Thác Bản Giốc"
+            },
+            {
+                icon: "food",
+                title: "Ẩm thực",
+                desc: "Buffet sáng, theo thực đơn địa phương"
+            },
+            {
+                icon: "people",
+                title: "Đối tượng thích hợp",
+                desc: "Cặp đôi, Gia đình nhiều thế hệ, Thanh niên"
+            },
+            {
+                icon: "time",
+                title: "Thời gian lý tưởng",
+                desc: "Quanh năm"
+            },
+            {
+                icon: "transport",
+                title: "Phương tiện",
+                desc: "Máy bay, Xe du lịch"
+            },
+            {
+                icon: "discount",
+                title: "Khuyến mãi",
+                desc: "Đã bao gồm ưu đãi trong giá tour"
+            }
+        ]
     },
     {
         id: "QWERTYU",
@@ -101,7 +156,31 @@ export const tours = [
         price: "4,500,000đ",
         startCity: "TP. Hồ Chí Minh",
         startDates: ["2023-10-15", "2023-10-25"],
-        img: "https://cdn3.ivivu.com/2023/09/du-lich-cao-bang-ivivu-1-250x250.jpg",
+        img: "https://media.travel.com.vn/Tour/tfd__2_13054_meo-vac-and-dong-van-town1.webp",
+        images: [
+            "https://media.travel.com.vn/Tour/tfd__2_13054_meo-vac-and-dong-van-town1.webp",
+            "https://media.travel.com.vn/Tour/tfd__2_13054_hanh-trinh-cao-bang.webp",
+            "https://media.travel.com.vn/Tour/tfd__2_13054-lung-cu-flag-tower.webp",
+            "https://media.travel.com.vn/Tour/tfd__2_13054-ban-gioc-waterfall.webp"
+        ],
+        itinerary: [
+            {
+                day: 1,
+                title: "Khởi hành từ Hà Nội – tham quan Lạng Sơn",
+                description: "Sáng tập trung tại điểm hẹn, di chuyển đến Lạng Sơn. Tham quan Đền Kỳ Cùng, chợ Đông Kinh..."
+            },
+            {
+                day: 2,
+                title: "Khám phá núi Mẫu Sơn",
+                description: "Lên núi Mẫu Sơn ngắm cảnh, khám phá các bản làng dân tộc Dao. Chiều tự do khám phá ẩm thực địa phương."
+            },
+            {
+                day: 3,
+                title: "Về lại Hà Nội",
+                description: "Tham quan mua sắm đặc sản, sau đó lên xe quay về Hà Nội. Kết thúc chuyến đi lúc chiều tối."
+            }
+        ],
+        extraInfo: []
     },
     // ... có thể thêm nữa
 ];
