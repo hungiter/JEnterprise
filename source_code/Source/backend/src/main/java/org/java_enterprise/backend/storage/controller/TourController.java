@@ -1,0 +1,32 @@
+package org.java_enterprise.backend.storage.controller;
+
+import org.java_enterprise.backend.storage.model.Tour;
+import org.java_enterprise.backend.storage.service.TourService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/tours")
+public class TourController {
+
+    @Autowired
+    private TourService tourService;
+
+    @PostMapping("/save")
+    public String saveTours(@RequestBody List<Tour> tours) {
+        tourService.saveTours(tours);
+        return "Saved!";
+    }
+
+    @GetMapping("/{code}")
+    public Tour getTour(@PathVariable String code) {
+        return tourService.getTourByCode(code);
+    }
+
+    @GetMapping
+    public List<Tour> getAllTours() {
+        return tourService.getAllTours();
+    }
+}
