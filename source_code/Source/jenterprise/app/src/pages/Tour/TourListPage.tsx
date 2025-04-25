@@ -1,17 +1,33 @@
-import { useState } from "react";
+import { useEffect, useState } from 'react'
 import FilterPanel from "./components/FilterPanel";
 import TourList from "./components/TourList";
+import type { TourSummary } from "@/src/dtos/tour.dto";
+import { fetchAllTourSummaries } from '@/src/services/tour/TourListFetch'
+
 import {
-  tours,
   slogan,
   startPoints,
   endPoints,
   tourTypes,
   transports,
 } from "../../services/data";
-import { Card, CardContent } from "~/src/components/ui/card";
+import { Card, CardContent } from "@/src/components/ui/card";
 
 export default function Tours() {
+  const [tours, setTours] = useState<TourSummary[]>([])
+  useEffect(() => {
+    const loadTours = async () => {
+      try {
+        const data = await fetchAllTourSummaries()
+        setTours(data)
+      } catch (err) {
+        console.error("Failed to fetch tours", err)
+      }
+    }
+    loadTours()
+  }, [])
+
+
   const [sortBy, setSortBy] = useState("Ngày khởi hành gần nhất");
   const [selectedTourTypes, setSelectedTourTypes] = useState<string[]>(tourTypes);
   const [selectedTransport, setSelectedTransport] = useState<string[]>(transports);

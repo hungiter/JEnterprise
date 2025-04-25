@@ -1,4 +1,4 @@
-import TermsOfUse from "~/src/components/footer/TermOfUse";
+import TermsOfUse from "@/src/components/footer/TermOfUse";
 const TermsOfUsePage = () => {
     return <TermsOfUse />;
 };

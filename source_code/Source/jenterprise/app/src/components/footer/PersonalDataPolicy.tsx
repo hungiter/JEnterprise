@@ -1,6 +1,6 @@
 import { Card, CardContent } from "../ui/card";
 import { Section } from "../ui/section";
-import { companyInfo } from "~/src/services/data";
+import { companyInfo } from "@/src/services/data";
 
 const PersonalDataPolicy = () => {
     return (

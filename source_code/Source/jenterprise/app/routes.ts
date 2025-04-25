@@ -8,6 +8,7 @@ import {
 
 export default [
     index("./src/pages/Home/HomePage.tsx"), // Root route ("/")
+    // index("./src/pages/Tour/TourListPage.tsx"), // Root route ("/")
 
     layout("./src/layout/authLayout.tsx", [
         route("login", "./src/pages/Authenticate/LoginPage.tsx"),
@@ -18,7 +19,7 @@ export default [
     layout("./src/layout/mainLayout.tsx", [
         // Tour Pages
         route("tours", "./src/pages/Tour/TourListPage.tsx"),
-        route("tours/:id", "./src/pages/Tour/TourDetailPage.tsx"),
+        route("tours/:tourCode", "./src/pages/Tour/TourDetailPage.tsx"),
         route("dashboard", "./src/pages/Dashboard/DashBoardPage.tsx"),
         // Account's pages
         route("account/:accountId", "./src/pages/Account/AccountInfoPage.tsx"),

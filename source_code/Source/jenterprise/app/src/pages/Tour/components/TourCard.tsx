@@ -1,19 +1,11 @@
 import { Link } from "react-router-dom";
+import type { TourSummary } from '@/src/dtos/tour.dto'
 
-interface Tour {
-  id: number;
-  title: string;
-  price: string;
-  startCity: string;
-  startDates: string[];
-  img: string;
-}
-
-export default function TourCard({ tour }: { tour: Tour }) {
+export default function TourCard({ tour }: { tour: TourSummary }) {
   return (
     <div className="border rounded-lg overflow-hidden shadow-md p-6 flex flex-col md:flex-row relative">
       <img
-        src={tour.img}
+        src={tour.thumbnail}
         alt={tour.title}
         className="w-full md:w-1/3 h-48 object-cover rounded-lg text-black"
       />
@@ -21,11 +13,11 @@ export default function TourCard({ tour }: { tour: Tour }) {
         <div>
           <h2 className="text-lg font-bold text-black">{tour.title}</h2>
           <p className="text-red-500 font-bold">{tour.price}</p>
-          <p className="text-gray-500 font-bold">Khởi hành từ: {tour.startCity}</p>
-          <p className="text-gray-500 font-bold">Ngày khởi hành: {tour.startDates.join(", ")}</p>
+          <p className="text-gray-500 font-bold">Khởi hành từ: {tour.departure}</p>
+          <p className="text-gray-500 font-bold">Ngày khởi hành: {tour.calendar.join(", ")}</p>
         </div>
         <div className="flex justify-end mt-4">
-          <Link to={`/tours/${tour.id}`}>
+          <Link to={`/tours/${tour.tour_code}`}>
             <button className="bg-blue-500 text-white px-4 py-2 rounded">
               Xem chi tiết
             </button>

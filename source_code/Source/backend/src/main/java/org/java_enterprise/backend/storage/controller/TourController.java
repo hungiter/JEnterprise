@@ -1,5 +1,6 @@
 package org.java_enterprise.backend.storage.controller;
 
+import org.java_enterprise.backend.storage.dto.TourSummaryDTO;
 import org.java_enterprise.backend.storage.model.Tour;
 import org.java_enterprise.backend.storage.service.TourService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,5 +29,10 @@ public class TourController {
     @GetMapping
     public List<Tour> getAllTours() {
         return tourService.getAllTours();
+    }
+
+    @GetMapping("/summary")
+    public List<TourSummaryDTO> getTourSummaries() {
+        return tourService.getAllTourSummaries();
     }
 }

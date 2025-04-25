@@ -1,4 +1,4 @@
-import PrivacyPolicy from "~/src/components/footer/PrivacyPolicy";
+import PrivacyPolicy from "@/src/components/footer/PrivacyPolicy";
 const PrivacyPolicyPage = () => {
     return <PrivacyPolicy />;
 };

@@ -1,4 +1,4 @@
-import PersonalDataPolicy from "~/src/components/footer/PersonalDataPolicy";
+import PersonalDataPolicy from "@/src/components/footer/PersonalDataPolicy";
 const PersonalDataPolicyPage = () => {
     return <PersonalDataPolicy />
 };

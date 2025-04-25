@@ -32,7 +32,7 @@ const TourImageGallery = ({ images = [], cover }: { images: string[]; cover?: st
             )}
 
             {/* Main image */}
-            <div className={hasThumbs ? "flex-1" : "w-full"}>
+            <div className={hasThumbs ? "ms-2 flex-1" : "w-full"}>
                 <img
                     src={selected}
                     alt="selected"

@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { helpData } from "~/src/services/data";
-import { Card, CardContent } from "~/src/components/ui/card";
+import { helpData } from "@/src/services/data";
+import { Card, CardContent } from "@/src/components/ui/card";
 
 const HelpPage = () => {
     type HelpCategory = keyof typeof helpData;

@@ -1,18 +1,10 @@
 import TourCard from "./TourCard";
+import type { TourSummary } from '@/src/dtos/tour.dto'
 
-interface Tour {
-  id: number;
-  title: string;
-  price: string;
-  startCity: string;
-  startDates: string[];
-  img: string;
-}
-
-interface TourListProps {
-  tours: Tour[];
-  sortBy: string;
-  setSortBy: (sort: string) => void;
+type TourListProps = {
+  tours: TourSummary[]
+  sortBy: string
+  setSortBy: (value: string) => void
 }
 
 export default function TourList({ tours, sortBy, setSortBy }: TourListProps) {
@@ -30,7 +22,7 @@ export default function TourList({ tours, sortBy, setSortBy }: TourListProps) {
       </div>
       <div className="grid grid-cols-1 gap-6 mt-6">
         {tours.map((tour) => (
-          <TourCard key={tour.id} tour={tour} />
+          <TourCard key={tour.tour_code} tour={tour} />
         ))}
       </div>
     </div>

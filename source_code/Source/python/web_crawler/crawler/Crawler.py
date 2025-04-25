@@ -110,7 +110,7 @@ def fetch_tour(url: str, tour_id: str):
 
             driver = webdriver.Chrome(options=options)
             driver.get(url)
-            time.sleep(5)  # Wait JS render
+            time.sleep(2)  # Wait JS render
 
             raw_data = driver.page_source
             cache.set(tour_id, raw_data, expire=3600)
@@ -256,7 +256,7 @@ def fetch_tours(url: str, data_name: str):
 
         driver = webdriver.Chrome(options=options)
         driver.get(url)
-        time.sleep(5)  # Wait JS render
+        time.sleep(2)  # Wait JS render
         raw_data = driver.page_source
         driver.close()
 
