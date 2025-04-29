@@ -28,7 +28,9 @@ public class TourController {
 
     @GetMapping
     public List<Tour> getAllTours() {
-        return tourService.getAllTours();
+        List<Tour> result =  tourService.getAllTours();
+        System.out.println("Currently have "+ result.size() + " tours");
+        return result;
     }
 
     @GetMapping("/summary")

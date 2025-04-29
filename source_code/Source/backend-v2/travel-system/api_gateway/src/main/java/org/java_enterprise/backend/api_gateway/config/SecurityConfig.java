@@ -1,4 +1,4 @@
-package org.java_enterprise.backend.tour_service.config;
+package org.java_enterprise.backend.api_gateway.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -9,6 +9,8 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 public class SecurityConfig {
     private static final String[] PUBLIC_ENDPOINTS = {
+            "/api/auth/**",
+            "/api/users/**",
             "/api/tours/**"
     };
 
