@@ -1,26 +1,58 @@
 version: '3.8'
 services:
   api-gateway:
-    build: api_gateway
+    build:
+      context: ./api_gateway
+    container_name: api-gateway
     ports:
       - "8080:8080"
+    depends_on:
+      - tour-service
+      - user-service
+      - guide-service
+    networks:
+      - app-network
+    command: ["java", "-jar", "/app.jar", "--server.port=8080", "--server.address=0.0.0.0"]
   user-service:
-    build: ./user_service
+    build:
+      context: ./user_service
+    container_name: user-service
     ports:
       - "8081:8081"
+    networks:
+      - app-network
+    command: ["java", "-jar", "/app.jar", "--server.port=8081", "--server.address=0.0.0.0"]
   tour-service:
-    build: ./tour_service
+    build:
+      context: ./tour_service
+    container_name: tour-service
     ports:
       - "8082:8082"
+    networks:
+      - app-network
+    command: ["java", "-jar", "/app.jar", "--server.port=8082", "--server.address=0.0.0.0"]
   guide-service:
-    build: ./guide_service
+    build:
+      context: ./guide_service
+    container_name: guide-service
     ports:
       - "8083:8083"
+    networks:
+      - app-network
+    command: ["java", "-jar", "/app.jar", "--server.port=8083", "--server.address=0.0.0.0"]
   # Recommendation service (Python)
   recommendation-service:
-    build: ./recommendation-service
+    build:
+      context: ./recommendation-service
+    container_name: recommendation-service
     ports:
       - "5000:5000"
+    networks:
+      - app-network
     environment:
       - FLASK_APP=app.py
       - FLASK_RUN_HOST=0.0.0.0
+
+networks:
+  app-network:
+    driver: bridge
