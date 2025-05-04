@@ -26,7 +26,7 @@ def root():
 
 @app.get("/crawl")
 def crawl_tours():
-    clear_cache = True
+    clear_cache = False
     try:
         display_data = []
         for cache_item in cache_map:

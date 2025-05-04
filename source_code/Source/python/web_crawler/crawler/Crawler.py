@@ -9,7 +9,7 @@ from crawler.TourModel import ScheduleInfo, Tour, TourDetail
 import re
 crawl_target = "https://travel.com.vn"
 cache = diskcache.Cache("cache")  # lưu vào thư mục cache/
-page_loading_delay_time = 5  # 5 seconds
+page_loading_delay_time = 2  # 2 seconds
 
 
 def get_tour_from_html(url: str, html: str):
@@ -319,9 +319,9 @@ def get_tours_from_html(html: str):
                     tour_detail=tour_detail
                 )
                 tours.append(tour)
+                print(f"Tour {tour_id} added.")
             except Exception as e:
-                pass
-
+                print(f"Fetch Tour Error: {e}")
         except Exception as e:
             print(f"Error extracting a tour: {e}")
     return tours
@@ -338,7 +338,7 @@ def fetch_tours(url: str, data_name: str):
 
         driver = webdriver.Chrome(options=options)
         driver.get(url)
-        time.sleep(page_loading_delay_time)  # Wait JS render
+        time.sleep(page_loading_delay_time*2)  # Wait JS render
         raw_data = driver.page_source
         driver.close()
 
