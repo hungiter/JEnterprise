@@ -4,11 +4,12 @@ import diskcache
 import time
 from typing import List
 from bs4 import BeautifulSoup
-from crawler.TourModel import Tour, TourDetail
-from crawler.APICrawler import get_detail_info
+from crawler.DateUtils import parse_dates_with_year_rollover
+from crawler.TourModel import ScheduleInfo, Tour, TourDetail
 import re
 crawl_target = "https://travel.com.vn"
 cache = diskcache.Cache("cache")  # lưu vào thư mục cache/
+page_loading_delay_time = 5  # 5 seconds
 
 
 def get_tour_from_html(url: str, html: str):
@@ -23,6 +24,7 @@ def get_tour_from_html(url: str, html: str):
         tour_suitable_customers = ""
         tour_ideal_times = ""
         tour_vehicles = ""
+        trip_plan = []
         try:
             image_div = tour_div.findChild(
                 'div', class_='image-gallery')
@@ -52,7 +54,7 @@ def get_tour_from_html(url: str, html: str):
 
                 if overview_info_div:
                     overview_item_divs = overview_info_div.findAll(
-                        "div", lambda x: x and 'tour--detail__content--left--overview__content-item' in x.split())
+                        "div", class_=lambda x: x and 'tour--detail__content--left--overview__content-item' in x.split())
                     for overview_item_div in overview_item_divs:
                         overview_title = overview_item_div.find(
                             "div", "tour--detail__content--left--overview__content-title")
@@ -75,7 +77,69 @@ def get_tour_from_html(url: str, html: str):
             schedule_div = tour_div.findChild(
                 'div', class_='tour-schedule')
             if schedule_div:
-                print(schedule_div)
+                schedule_item_divs = schedule_div.findAll(
+                    "div", class_=lambda x: x and 'item-schedule' in x.split())
+                schedule_index = 0
+                for schedule_item_div in schedule_item_divs:
+                    # Reset value
+                    schedule_index = schedule_index + 1
+                    schedule_date = ""
+                    schedule_title = ""
+                    schedule_meal_info = ""
+                    schedule_detail_html = ""
+
+                    # Get Day + Location
+                    schedule_item_title_div = schedule_item_div.find(
+                        "div", class_=lambda x: x and 'item-title-content' in x.split())
+                    if schedule_item_title_div:
+                        title_p = schedule_item_title_div.find("p")
+                        if title_p:
+                            # Get Day
+                            schedule_date_label = title_p.find("label")
+                            if schedule_date_label:
+                                schedule_date = schedule_date_label.get_text(
+                                    strip=True)
+                                match = re.match(
+                                    r"(Ngày\s*\d+)", schedule_date)
+                                if match:
+                                    schedule_date = match.group(1)
+                                else:
+                                    schedule_date = ""
+                                # print(schedule_date)
+                            # Get Location
+                            schedule_title_span = title_p.find("span")
+                            if schedule_title_span:
+                                schedule_title = schedule_title_span.get_text(
+                                    strip=True)
+                                # print(schedule_title)
+                    # Get Meal Info
+                    schedule_item_meal_info_div = schedule_item_div.find(
+                        "div", class_=lambda x: x and 'meal-inFor' in x.split())
+                    if schedule_item_meal_info_div:
+                        schedule_meal_info_p = schedule_item_meal_info_div.find(
+                            "p")
+                        if schedule_meal_info_p:
+                            schedule_meal_info = schedule_meal_info_p.get_text(
+                                strip=True)
+                            # print(schedule_meal_info)
+                    # Get Info Html
+                    schedule_item_detail_info_div = schedule_item_div.find(
+                        "div", class_="inner")
+                    if schedule_item_detail_info_div:
+                        schedule_detail_html = schedule_item_detail_info_div.decode_contents()
+
+                    try:
+                        plan_info = ScheduleInfo(
+                            index=schedule_index,
+                            date_label=schedule_date,
+                            title=schedule_title,
+                            meal_info=schedule_meal_info,
+                            detail_html=schedule_detail_html
+                        )
+                        trip_plan.append(plan_info)
+                    except:
+                        pass
+                schedule_div.decompose()
         except Exception as e:
             pass
 
@@ -86,7 +150,8 @@ def get_tour_from_html(url: str, html: str):
             cuisine=tour_cuisine,
             suitable_customers=tour_suitable_customers,
             ideal_times=tour_ideal_times,
-            vehicles=tour_vehicles
+            vehicles=tour_vehicles,
+            trip_plan=trip_plan
         )
     except Exception as e:
         print(f"Error extracting a tour: {e}")
@@ -110,7 +175,7 @@ def fetch_tour(url: str, tour_id: str):
 
             driver = webdriver.Chrome(options=options)
             driver.get(url)
-            time.sleep(2)  # Wait JS render
+            time.sleep(page_loading_delay_time)  # Wait JS render
 
             raw_data = driver.page_source
             cache.set(tour_id, raw_data, expire=3600)
@@ -201,10 +266,12 @@ def get_tours_from_html(html: str):
                             'div', class_='list-item')
                         tour_calendar = [date.text.strip()
                                          for date in start_date_divs]
+                        tour_calendar = parse_dates_with_year_rollover(
+                            tour_calendar)
                         tour_calendar_div.decompose()
 
                     tour_price_div = tour_info_div.find(
-                        'div', class_=lambda x: x and 'card-filter-desktop__content--price-newPrice' in x.split())
+                        'div', class_='card-filter-desktop__content--price-newPrice')
                     if tour_price_div:
                         tour_price_text = tour_price_div.find('p').text
                         tour_price_value = int(
@@ -212,34 +279,49 @@ def get_tours_from_html(html: str):
                         tour_price_div.decompose()
                     tour_info_div.decompose()
             except Exception as e:
-                pass
+                print(f"Error: {e}")
 
             # if index == 0:
             #     index = index + 1
             #     try:
             #         tour_detail = fetch_tour(tour_detail_link, tour_id)
+            #         tour = Tour(
+            #             tour_code=tour_id,
+            #             thumbnail=tour_thumbnail,
+            #             title=tour_title,
+            #             departure=tour_departure,
+            #             duration=tour_staytime,
+            #             vehicle=tour_vehicle,
+            #             calendar=tour_calendar,
+            #             priceValue=tour_price_value,
+            #             price=tour_price_text,
+            #             detail_url=tour_detail_link,
+            #             tag=tour_tag,
+            #             tour_detail=tour_detail
+            #         )
+            #         tours.append(tour)
             #     except Exception as e:
             #         pass
             try:
                 tour_detail = fetch_tour(tour_detail_link, tour_id)
+                tour = Tour(
+                    tour_code=tour_id,
+                    thumbnail=tour_thumbnail,
+                    title=tour_title,
+                    departure=tour_departure,
+                    duration=tour_staytime,
+                    vehicle=tour_vehicle,
+                    calendar=tour_calendar,
+                    priceValue=tour_price_value,
+                    price=tour_price_text,
+                    detail_url=tour_detail_link,
+                    tag=tour_tag,
+                    tour_detail=tour_detail
+                )
+                tours.append(tour)
             except Exception as e:
                 pass
 
-            tour = Tour(
-                tour_code=tour_id,
-                thumbnail=tour_thumbnail,
-                title=tour_title,
-                departure=tour_departure,
-                duration=tour_staytime,
-                vehicle=tour_vehicle,
-                calendar=tour_calendar,
-                priceValue=tour_price_value,
-                price=tour_price_text,
-                detail_url=tour_detail_link,
-                tag=tour_tag,
-                tour_detail=tour_detail
-            )
-            tours.append(tour)
         except Exception as e:
             print(f"Error extracting a tour: {e}")
     return tours
@@ -256,7 +338,7 @@ def fetch_tours(url: str, data_name: str):
 
         driver = webdriver.Chrome(options=options)
         driver.get(url)
-        time.sleep(2)  # Wait JS render
+        time.sleep(page_loading_delay_time)  # Wait JS render
         raw_data = driver.page_source
         driver.close()
 

@@ -12,12 +12,18 @@ DB_NAME = "JEnterprise"
 TOURS_TABLE = "tours"
 MONGO_URI = f"mongodb+srv://{USER}:{PASS}@{HOST}/{DB_NAME}?retryWrites=true&w=majority&appName=JENterprise-Cluster"
 
-def update_tours(data:List[Tour], many=False):
-    # Adjust if using MongoDB Atlas
-    client = MongoClient(MONGO_URI)
-    db = client[DB_NAME]
-    collection = db[TOURS_TABLE]
-    print(f"✅ Đã chọn collection: {collection}")
-    for tour in data:
-        collection.update_one({"tour_code": tour.tour_code}, {"$set": tour.dict()}, upsert=True)
-    return True
+
+def update_tours(data: List[Tour], many=False):
+    if len(data) > 0:
+        # Adjust if using MongoDB Atlas
+        client = MongoClient(MONGO_URI)
+        db = client[DB_NAME]
+        collection = db[TOURS_TABLE]
+        print(f"✅ Đã chọn collection: {collection}")
+        for tour in data:
+            collection.update_one({"tour_code": tour.tour_code}, {                             "$set": tour.dict()}, upsert=True)
+        return True
+    else:
+        print(f"✅ Không có data để cập nhật")
+        return False
+

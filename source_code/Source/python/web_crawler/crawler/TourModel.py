@@ -2,9 +2,12 @@ from pydantic import BaseModel
 from typing import List
 
 class ScheduleInfo(BaseModel):
+    index: int = -1
+    date_label: str = ""
     title: str = ""
-    meal_times: str = ""
-    detail: str = ""
+    meal_info: str = ""
+    detail_html: str = ""
+
 
 class TourDetail(BaseModel):
     img_main: str = ""
@@ -14,7 +17,7 @@ class TourDetail(BaseModel):
     suitable_customers: str = ""
     ideal_times: str = ""
     vehicles: str = ""
-    trip_plan: List[str] = []
+    trip_plan: List[ScheduleInfo] = []
 
 
 class Tour(BaseModel):
