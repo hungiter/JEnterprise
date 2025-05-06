@@ -1,42 +1,103 @@
-import requests
-import json
-import pandas as pd
-from googletrans import Translator
-import time
-from IPython.display import clear_output
-
-# lưu vào thư mục cache/
 import diskcache
-cache = diskcache.Cache("cache")
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, StreamingResponse
+from bson.json_util import dumps
+from fastapi import FastAPI
+import re
+import json
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
-# Cấu hình MongoDB
-from pymongo import MongoClient
-from urllib.parse import quote_plus
-USER = "admin"
-PASS = quote_plus("hungnt121@gmail.com")  # Encode password
-HOST = "jenterprise-cluster.50c8w.mongodb.net"
-DB_NAME = "JEnterprise"
-TOURS_TABLE = "tours"
-MONGO_URI = f"mongodb+srv://{USER}:{PASS}@{HOST}/{DB_NAME}?retryWrites=true&w=majority&appName=JENterprise-Cluster"
+from index import clear_terminal, cache
+from service.TourService import wait_mongo_tours, fetch_mongo_tours, get_cache_tour
+from service.DictionaryService import wait_dictionary_create, fetch_dictionary_create, get_cache_dictionary
 
 # App API
-from fastapi import FastAPI
 app = FastAPI()
-
-import re
-from SPARQLWrapper import SPARQLWrapper, JSON
-sparql = SPARQLWrapper("https://query.wikidata.org/sparql")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Change this to your frontend's URL in production
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+clear_terminal()
 
 
 @app.get("/")
 def root():
     return {"message": "Webcrawler API is working!"}
 
-# @app.get("/crawl", response_model=List[Tour])
+
+def wait_data_processed():
+    while True:
+        step = ""
+        step_alias = ""
+        try:
+            step = "mongo_tour_fetch"
+            step_alias = "Fetching from Mongo..."
+            yield from wait_mongo_tours(step, step_alias)
+
+            step = "dict_create"
+            step_alias = "Creating dictionary..."
+            yield from wait_dictionary_create(step, step_alias)
+            step = "finished_step"
+            step_alias = "On finish process..."
+            payload = {"step": step, "step_alias": step_alias,
+                       "data": {"status": "success"}}
+            yield f"{json.dumps(payload, default=str)}\n"
+            break
+        except Exception as e:
+            payload = {"status": "error",
+                       "message": f"Something went wrong {e}"}
+            yield f"{json.dumps(payload, default=str)}\n"
+            yield "data: All processing completed\n"
+            break
 
 
-@app.get("/crawl")
-def data_extractor():
-    clear_cache = False
-    if clear_cache == True:
-       cache.delete("cache")
+@app.get("/data_processed")
+def data_processed_test():
+    return StreamingResponse(wait_data_processed(), media_type="text/event-stream")
+# API Using ==============================================================================
+
+
+@app.get("/cache_tour")
+def cache_tour():
+    return get_cache_tour()
+
+
+@app.get("/cache_dictionary")
+def cache_dictionary():
+    return get_cache_dictionary()
+
+
+def data_processed_auto():  # DAILY AUTO RUN
+    def data_processed():
+        step = ""
+        step_alias = ""
+        try:
+            step = "mongo_tour_fetch"
+            step_alias = "Fetching from Mongo..."
+            fetch_mongo_tours(step, step_alias)
+
+            step = "dict_create"
+            step_alias = "Creating dictionary..."
+            fetch_dictionary_create(step, step_alias)
+            step = "finished_step"
+            step_alias = "On finish process..."
+            payload = {"step": step, "step_alias": step_alias,
+                       "data": {"status": "success"}}
+            print(payload)
+        except Exception as e:
+            payload = {"status": "error",
+                       "message": f"Something went wrong {e}"}
+            print(payload)
+    data_processed()
+    tour = cache_tour()
+    tour_json = json.loads(tour.body.decode())
+    dictionary = cache_dictionary()
+    dictionary_json = json.loads(dictionary.body.decode())
+    if tour_json.get("status") == "success" and dictionary_json.get("status") == "success":
+        print("Finished daily processed")
+
+
+data_processed_auto()
