@@ -2,9 +2,10 @@ import re
 import time
 import json
 from typing import List
-
+import itertools
+from pymongo.errors import PyMongoError
 from pymongo import UpdateOne
-from index import cache, sparql, mongo_client
+from index import cache, sparql, mongo_client, print_new_message, clear_message, force_create_location_word_dict, force_initialize_heritage, force_update_cache_to_db
 from SPARQLWrapper import JSON
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import pandas as pd
@@ -16,7 +17,9 @@ from models.HeritageModel import Heritage
 DB_NAME = "JEnterprise"
 HERITAGE_TABLE = "heritages"
 
-word_cache = "cache_word"
+location_word_cache = "cache_location_word"
+heritage_cache = "cache_heritage"
+cache_duration = 86400  # 24h
 sleep_time = 0.1
 dictionary_create_status = {
     "loading": False,
@@ -28,10 +31,121 @@ dictionary_create_status = {
 future = None
 wait_dictionary_create_executors = ThreadPoolExecutor(max_workers=1)
 
-last_message = ""
 sp_all_results = []
 sp_offset = 0
 sp_limit = 100
+
+
+def build_heritage_cache_index():
+    index = {}
+    if heritage_cache in cache:
+        cache_data = cache[heritage_cache]
+        for item in cache_data:
+            obj = item if isinstance(item, Heritage) else Heritage(**item)
+            key = (obj.city, obj.country, obj.admin_name, obj.heritage)
+            index[key] = obj
+    return index
+
+
+def create_location_word_cache():
+    try:
+        if heritage_cache in cache:
+            raw_data = cache[heritage_cache]
+            if raw_data:
+                all_results = set()  # Sử dụng set để loại bỏ phần tử trùng lặp
+                heritages: List[Heritage] = [
+                    item if isinstance(item, Heritage) else Heritage(**item) for item in raw_data
+                ]
+
+                # Duyệt qua tất cả các Heritage objects và lấy các từ khóa cần thiết
+                for heritage in heritages:
+                    others = [heritage.city, heritage.admin_name,
+                              heritage.heritage, heritage.country]
+
+                    # Kiểm tra nếu country_vi là list và thêm vào 'others'
+                    if isinstance(heritage.country_vi, list):
+                        others.extend(heritage.country_vi)
+                    else:
+                        others.append(heritage.country_vi)
+
+                    # Thêm tất cả các phần tử vào set để tránh trùng lặp
+                    all_results.update(others)
+
+                # Chuyển đổi lại thành list và lưu vào cache
+                cache.set(location_word_cache, list(
+                    all_results), expire=cache_duration)
+                print_new_message(
+                    "create_location_word_cache.key_created_success")
+                return
+            print_new_message(
+                "create_location_word_cache.heritage_cache_empty")
+            return
+        print_new_message("create_location_word_cache.no_heritage_cache")
+    except Exception as e:
+        print_new_message(f"create_location_word_cache.key_create_failed: {e}")
+
+
+def initialize_heritage_cache():
+    # # Sometime timeout
+    # try:
+    #     db = mongo_client[DB_NAME]
+    #     collection = db[HERITAGE_TABLE]
+    #     data = []
+    #     docs = collection.find(batch_size=1000)
+    #     chunk_size = 5000
+    #     for chunk in chunked(docs, chunk_size):
+    #         new_data = [Heritage(**doc).dict() for doc in chunk]
+    #         data = list(data + new_data)
+    #         if data:
+    #             cache.set(heritage_cache, data, expire=cache_duration)
+    # except Exception as e:
+    #     print(f"Initialize Heritage Cache Error\n{e}")
+    try:
+        db = mongo_client[DB_NAME]
+        collection = db[HERITAGE_TABLE]
+
+        last_id = None
+        data = []
+        chunk_size = 5000
+
+        print_new_message("Dictionary cache initialize...\n")
+        while True:
+            print_new_message("Continue initialize...\n")
+            query = {"_id": {"$gt": last_id}} if last_id else {}
+            cursor = collection.find(query).sort("_id").batch_size(1000)
+
+            chunk = []
+            try:
+                for doc in cursor:
+                    chunk.append(doc)
+                    if len(chunk) >= chunk_size:
+                        break
+            except PyMongoError as e:
+                print_new_message(f"Cursor iteration error, resuming...\n{e}")
+                continue  # retry the current iteration
+
+            if not chunk:
+                break  # no more data
+
+            new_data = [Heritage(**doc).dict() for doc in chunk]
+            data.extend(new_data)
+
+            last_id = chunk[-1]["_id"]  # save last processed ID
+
+            # Update cache every chunk (optional)
+            if data:
+                cache.set(heritage_cache, data, expire=cache_duration)
+
+    except Exception as e:
+        print_new_message(f"Initialize Heritage Cache Error\n{e}")
+
+
+def extend_heritage_cache_life():
+    try:
+        cache.set(heritage_cache,
+                  cache[heritage_cache], expire=cache_duration)
+    except:
+        pass
 
 
 def save_dictionary(data: List[Heritage]):
@@ -57,7 +171,7 @@ def save_dictionary(data: List[Heritage]):
 
     #         collection.update_one(primary_key, {
     #             "$set": heritage.dict()}, upsert=True)
-    #     cache.set(word_cache, data, expire=36000)
+    #     cache.set(heritage_cache, data, expire=36000)
     # except Exception as e:
     #     print(f"❌ Lỗi kết nối MongoDB: {e}")
     #     return False
@@ -69,31 +183,66 @@ def save_dictionary(data: List[Heritage]):
 
         bulk_ops = []
         total = len(data)
+        heritage_index = build_heritage_cache_index()
         for index, heritage in enumerate(data):
-            primary_key = {
-                "city": heritage.city,
-                "country": heritage.country,
-                "admin_name": heritage.admin_name,
-                "heritage": heritage.heritage
-            }
-
             # Find existing country_vi (optional - could pre-fetch if needed)
             prefix = f"{index+1}/{total}"
             need_update = False
             existing_vi = []
-            existed_heritage = collection.find_one(primary_key)
+            # # Take time on connecting with mongodb -> using already cache data
+            # primary_key = {
+            #     "city": heritage.city,
+            #     "country": heritage.country,
+            #     "admin_name": heritage.admin_name,
+            #     "heritage": heritage.heritage
+            # }
+            # existed_heritage = collection.find_one(primary_key)
+
+            primary_key = (heritage.city, heritage.country,
+                           heritage.admin_name, heritage.heritage)
+            existed_heritage = heritage_index.get(primary_key)
+            try:
+                if existed_heritage:
+                    print_new_message(
+                        f"save_dictionary.found_from_cache: {primary_key}")
+                else:
+                    existed_heritage = collection.find_one({
+                        "city": heritage.city,
+                        "country": heritage.country,
+                        "admin_name": heritage.admin_name,
+                        "heritage": heritage.heritage
+                    })
+                    print_new_message(
+                        f"save_dictionary.find_from_db: {primary_key}")
+            except:
+                continue
+
             if existed_heritage:
-                existing_vi = existed_heritage.get("country_vi", [])
+                existing_vi = existed_heritage.country_vi
                 if existing_vi != [] and heritage.country_vi not in existing_vi:
-                    need_update = True
+                    for item in heritage.country_vi:
+                        if item not in existing_vi:
+                            need_update = True
+                            continue
                 dictionary_create_status[
-                    "message"] = f"{prefix}-Update object {existed_heritage.get("_id")}"
+                    "message"] = f"{prefix}-Update object {primary_key}"
             else:
                 need_update = True
                 dictionary_create_status["message"] = "{prefix}-Add new object"
 
             if need_update == True:
                 if heritage.country_vi:
+                    new_country_vi = []
+                    for cvi in heritage.country_vi:
+                        if "," in cvi:
+                            parts = [part.strip() for part in cvi.split(',')]
+                            permutations = list(itertools.permutations(parts))
+                            for perm in permutations:
+                                new_country_vi.append(' '.join(perm))
+                        new_country_vi.append(cvi)
+                    if heritage.country_vi != new_country_vi:
+                        print_new_message(
+                            f"save_dictionary.new_saving_country_vi: {new_country_vi}")
                     heritage.country_vi = list(
                         set(existing_vi + heritage.country_vi))
 
@@ -105,10 +254,61 @@ def save_dictionary(data: List[Heritage]):
         if bulk_ops:
             collection.bulk_write(bulk_ops, ordered=False)
 
-        cache.set(word_cache, data, expire=36000)
+        cache.set(heritage_cache, data, expire=cache_duration)
         return True
     except Exception as e:
-        print(f"❌ Lỗi kết nối MongoDB: {e}")
+        print_new_message(f"save_dictionary.mongo_error: {e}")
+        return False
+
+
+def save_dictionary_from_cache():
+
+    try:
+        print_new_message("save_dictionary_from_cache.on_check_cache_existed")
+        if heritage_cache in cache:
+            print_new_message(
+                "save_dictionary_from_cache.create_list_for_save")
+            data = cache[heritage_cache]
+            list_heritage = []
+            if data:
+                for item in data:
+                    try:
+                        heritage = Heritage(
+                            city=item.get("city", ""),
+                            country=item.get("country", ""),
+                            admin_name=item.get("admin_name", ""),
+                            country_vi=item.get("country_vi", []),
+                            heritage=item.get("heritage", "")
+                        )
+
+                        list_heritage.append(heritage)
+                    except Exception as e:
+                        try:
+                            heritage = Heritage(
+                                city=item.city,
+                                country=item.country,
+                                admin_name=item.admin_name,
+                                country_vi=item.country_vi,
+                                heritage=item.heritage
+                            )
+                            list_heritage.append(heritage)
+                        except Exception as e:
+                            print_new_message(
+                                f"save_dictionary_from_cache.list_item_append_error: {e}")
+                try:
+                    if list_heritage:
+                        save_dictionary(list_heritage)
+                except Exception as e:
+                    print_new_message(
+                        f"save_dictionary_from_cache.save_error: {e}")
+                return True
+            else:
+                return False
+        else:
+            print_new_message("save_dictionary_from_cache.none_data")
+            return False
+    except Exception as e:
+        print_new_message(f"save_dictionary_from_cache.mongo_error: {e}")
         return False
 
 
@@ -278,6 +478,31 @@ def dictionary_creator(verbose=True):
     try:
         dictionary_create_status["loading"] = True
         dictionary_create_status["success"] = False
+        # MONGO HISTORY ===============================================================
+        if heritage_cache not in cache or not cache[heritage_cache] or force_initialize_heritage == True:
+            dictionary_create_status["step"] = "mongodb_heritage_fetch"
+            dictionary_create_status["message"] = "Start Fetching..."
+            initialize_heritage_cache()
+        if location_word_cache not in cache or not cache[location_word_cache] or force_create_location_word_dict == True:
+            dictionary_create_status["step"] = "create_location_word_dict"
+            dictionary_create_status["message"] = "Start Creating..."
+            create_location_word_cache()
+        continuable = False
+        if not continuable:
+            # FINISED STATE ==========================================================
+            if heritage_cache not in cache or not cache[heritage_cache] or force_update_cache_to_db == True:
+                dictionary_create_status["step"] = "update_cache_mongo"
+                dictionary_create_status["message"] = "Start Updating..."
+                save_dictionary_from_cache()
+            dictionary_create_status["loading"] = False
+            dictionary_create_status["success"] = True
+            dictionary_create_status["step"] = "finished"
+            dictionary_create_status["message"] = ""
+            if heritage_cache in cache:
+                return cache[heritage_cache]
+            else:
+                return
+
         dictionary_create_status["step"] = "earth_places_detect"
         dictionary_create_status["message"] = "Start Detect..."
         # EARTH LOCATION ========================================================
@@ -325,156 +550,86 @@ def dictionary_creator(verbose=True):
         return
 
 
-def wait_dictionary_create(step_name: str, step_alias: str):
-    global future
-    try:
-        # Step 1: If not in cache → fetch from DB
-        dictionary_execute = False
-        if word_cache not in cache:
-            if future:
-                print("⏳ Countinue create dictionary...\n")
-            else:
-                print("⏳ Start creating dictionary...\n")
-                dictionary_execute = True
-                future = wait_dictionary_create_executors.submit(
-                    dictionary_creator)
-        else:
-            print("⏳ Fetching from Cache...\n")
-
-        while True:
-            try:
-                # Step 2: If available, send to client
-                if word_cache in cache:
-                    payload = {"step": step_name,  "step_alias": step_alias, "data": {
-                        "status": "success", "source": "cache"}}
-                    message = f"{json.dumps(payload, default=str)}\n"
-                    yield message
-                    print(message)
-                    break  # Close stream after sending
-                elif future and future.done():
-                    result = future.result()
-                    if result:
-                        payload = {"step": step_name, "step_alias": step_alias, "data": {
-                            "status": "success", "source": "live"}}
-                        message = f"{json.dumps(payload, default=str)}\n"
-                        yield message
-                        print(message)
-                    else:
-                        payload = {"step": step_name, "step_alias": step_alias, "data": {
-                            "status": "error", "source": "live", "message": "No data found"}}
-                        message = f"{json.dumps(payload, default=str)}\n"
-                        yield message
-                        print(message)
-                    break
-                else:
-                    # Step 3: Keep connection alive while waiting
-                    payload = {"step": step_name, "step_alias": step_alias,
-                               "data": {"status": "waiting", "step": dictionary_create_status["step"], "message": dictionary_create_status["message"]}}
-                    message = f"{json.dumps(payload, default=str)}\n"
-                    yield message
-                    print(message)
-                    time.sleep(1)
-                future = None
-            except Exception as e:
-                payload = {"step": step_name,  "step_alias": step_alias, "data": {"status": "error"},
-                           "message": f"Something went wrong {e}"}
-                message = f"{json.dumps(payload, default=str)}\n"
-                yield message
-                print(message)
-                break
-        if dictionary_execute == True:
-            print("Finished Create Dictionary\n")
-        else:
-            print("Finished Get Cache Dictionary\n")
-    except Exception as e:
-        payload = {"step": step_name,  "step_alias": step_alias, "data": {"status": "error"},
-                   "message": f"Something went wrong {e}"}
-        message = f"{json.dumps(payload, default=str)}\n"
-        yield message
-        print(message)
-
-
-def print_new_message(message: str):
-    global last_message
-    if message != last_message:
-        last_message = message
-        print(last_message)
-
-
-def clear_message():
-    global last_message
-    last_message = ""
-
-
 def fetch_dictionary_create(step_name: str, step_alias: str):
     global future, sleep_time
     try:
         # Step 1: If not in cache → fetch from DB
         dictionary_execute = False
-        if word_cache not in cache:
-            if future:
-                print_new_message("⏳ Countinue create dictionary...\n")
-            else:
-                print_new_message("⏳ Start creating dictionary...\n")
-                dictionary_execute = True
-                future = wait_dictionary_create_executors.submit(
-                    dictionary_creator)
+        if future:
+            print_new_message("⏳ Countinue create dictionary...\n")
         else:
-            print_new_message("⏳ Fetching from Cache...\n")
+            print_new_message("⏳ Start creating dictionary...\n")
+            dictionary_execute = True
+            future = wait_dictionary_create_executors.submit(
+                dictionary_creator)
 
         while True:
             try:
-                # Step 2: If available, send to client
-                if word_cache in cache:
-                    payload = {"step": step_name,  "step_alias": step_alias, "data": {
-                        "status": "success", "source": "cache"}}
-                    message = f"{json.dumps(payload, default=str)}\n"
-                    print_new_message(message)
-                    break  # Close stream after sending
-                elif future and future.done():
+                # # Step 2: If available, send to client
+                # if heritage_cache in cache:
+                #     payload = {"step": step_name,  "step_alias": step_alias, "data": {
+                #         "status": "success", "source": "cache"}}
+                #     message = f"{json.dumps(payload, default=str)}\n"
+                #     print_new_message(message)
+                #     break  # Close stream after sending
+
+                if future and future.done():
                     result = future.result()
                     if result:
                         payload = {"step": step_name, "step_alias": step_alias, "data": {
                             "status": "success", "source": "live"}}
-                        message = f"{json.dumps(payload, default=str)}\n"
-                        print_new_message(message)
+                        message = f"{json.dumps(payload, default=str)}"
+                        print_new_message(
+                            f"fetch_dictionary_create.future_result: {message}")
                     else:
                         payload = {"step": step_name, "step_alias": step_alias, "data": {
                             "status": "error", "source": "live", "message": "No data found"}}
-                        message = f"{json.dumps(payload, default=str)}\n"
-                        print_new_message(message)
+                        message = f"{json.dumps(payload, default=str)}"
+                        print_new_message(
+                            f"fetch_dictionary_create.future_result: {message}")
                     future = None
                     break
                 else:
                     # Step 3: Keep connection alive while waiting
                     payload = {"step": step_name, "step_alias": step_alias,
                                "data": {"status": "waiting", "step": dictionary_create_status["step"], "message": dictionary_create_status["message"]}}
-                    message = f"{json.dumps(payload, default=str)}\n"
-                    print_new_message(message)
+                    message = f"{json.dumps(payload, default=str)}"
+                    print_new_message(
+                        f"fetch_dictionary_create.future_waiting: {message}")
                     time.sleep(sleep_time)
             except Exception as e:
                 payload = {"step": step_name,  "step_alias": step_alias, "data": {"status": "error"},
                            "message": f"Something went wrong {e}"}
-                message = f"{json.dumps(payload, default=str)}\n"
-                print_new_message(message)
+                message = f"{json.dumps(payload, default=str)}"
+                print_new_message(
+                    f"fetch_dictionary_create.finished_future_check_error: {message}")
                 break
         if dictionary_execute == True:
-            print_new_message("Finished Create Dictionary\n")
+            print_new_message("fetch_dictionary_create.finished_create_dict")
         else:
-            print_new_message("Finished Get Cache Dictionary\n")
+            print_new_message("fetch_dictionary_create.finished_get_dict")
     except Exception as e:
         payload = {"step": step_name,  "step_alias": step_alias, "data": {"status": "error"},
                    "message": f"Something went wrong {e}"}
-        message = f"{json.dumps(payload, default=str)}\n"
-        print_new_message(message)
+        message = f"{json.dumps(payload, default=str)}"
+        print_new_message(
+            f"fetch_dictionary_create.finished_create_dict_error: {message}")
         clear_message()
 
 
 def get_cache_dictionary():
-    if word_cache in cache:
-        data = cache[word_cache]
+    if heritage_cache in cache:
+        data = cache[heritage_cache]
         if not data:
-            return {"error": "Cache empty"}
-        # data = json.loads(data)  # Parse json
+            return JSONResponse(content=json.loads(dumps({"status": "error", "message":  "Cache empty"})))
         return JSONResponse(content=json.loads(dumps({"status": "success", "data": data})), media_type="application/json")
+    return JSONResponse(content=json.loads(dumps({"status": "error", "message": "Not have dictionary in cache"})))
+
+
+def get_cache_location_word():
+    if location_word_cache in cache:
+        data = cache[location_word_cache]
+        if not data:
+            return JSONResponse(content=json.loads(dumps({"status": "error", "message":  "Cache empty"})))
+        return JSONResponse(content=json.loads(dumps({"status": "success", "data": data})))
     return JSONResponse(content=json.loads(dumps({"status": "error", "message": "Not have dictionary in cache"})))
