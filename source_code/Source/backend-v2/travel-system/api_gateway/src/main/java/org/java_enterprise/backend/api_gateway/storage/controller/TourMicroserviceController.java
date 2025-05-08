@@ -39,4 +39,41 @@ public class TourMicroserviceController {
                     .body("Error: " + e.getMessage());
         }
     }
+
+    @GetMapping("/{code}")
+    public ResponseEntity<String> getTour(@PathVariable("code") String code) {
+        return forwardRequest(HttpMethod.GET, "/" + code);
+    }
+
+    @GetMapping("/summary")
+    public ResponseEntity<String> getAllTourSummaries() {
+        return forwardRequest(HttpMethod.GET, "/summary");
+    }
+
+    @PostMapping("/summary_tours")
+    public ResponseEntity<String> getTours(@RequestBody String requestJson) {
+        return forwardRequest(HttpMethod.POST, "/summary_tours", requestJson);
+    }
+
+    // ========================== Utility ==========================
+    private ResponseEntity<String> forwardRequest(HttpMethod method, String path) {
+        return forwardRequest(method, path, null);
+    }
+
+    private ResponseEntity<String> forwardRequest(HttpMethod method, String path, String body) {
+        HttpHeaders headers = appHeaders.getHeaders();
+        HttpEntity<String> entity = new HttpEntity<>(body, headers);
+        String url = tourServiceUrl + "/api/tours" + path;
+
+        try {
+            return restTemplate.exchange(url, method, entity, String.class);
+        } catch (Exception e) {
+            System.out.println(url);
+            System.out.println(entity);
+            System.out.println(e.toString());
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error: " + e.getMessage());
+        }
+    }
 }

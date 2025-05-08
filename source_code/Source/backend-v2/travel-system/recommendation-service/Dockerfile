@@ -1,6 +1,11 @@
+FROM python:3.11-slim
 
-FROM python:3.9-slim
 WORKDIR /app
-COPY . .
+
+COPY requirements.txt .
+
+RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
-CMD ["python", "app.py"]
+
+COPY . .
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000"]
