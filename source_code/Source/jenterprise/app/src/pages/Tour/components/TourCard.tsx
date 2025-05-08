@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import type { TourSummary } from '@/src/dtos/tour.dto'
+import UpcomingTourDates from "./UpcomingTourDates";
 
 export default function TourCard({ tour }: { tour: TourSummary }) {
   return (
@@ -14,7 +15,7 @@ export default function TourCard({ tour }: { tour: TourSummary }) {
           <h2 className="text-lg font-bold text-black">{tour.title}</h2>
           <p className="text-red-500 font-bold">{tour.price}</p>
           <p className="text-gray-500 font-bold">Khởi hành từ: {tour.departure}</p>
-          <p className="text-gray-500 font-bold">Ngày khởi hành: {tour.calendar.join(", ")}</p>
+          <UpcomingTourDates dates={tour.calendar} />
         </div>
         <div className="flex justify-end mt-4">
           <Link to={`/tours/${tour.tour_code}`}>
