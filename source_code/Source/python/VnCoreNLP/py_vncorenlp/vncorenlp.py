@@ -14,8 +14,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 import string
 import pandas as pd
 import ast
-from underthesea import word_tokenize, pos_tag
 from collections import Counter
+from underthesea import word_tokenize, pos_tag
 
 # .\.venv\Scripts\activate.bat
 # pip freeze > requirements.txt
@@ -244,21 +244,21 @@ processe_data_state = {
 
 def data_processed_auto():
     global model, punctuations, raw_df, unique_tags
-    # if len(punctuations) == 0 or raw_df == None:
-    #     processe_data_state["step"] = "load_data_from_csv"
-    #     processe_data_state["message"] = "Đang xử lí dữ liệu từ data mẫu..."
-    #     punctuations = set(string.punctuation)
-    #     raw_df = pd.read_csv("./Dataset_articles_NoID.csv")
-    #     raw_df['Tags'] = raw_df['Tags'].apply(ast.literal_eval)
-    #     unique_tags = set(
-    #         tag for tags_list in raw_df['Tags'] for tag in tags_list)
-    #     print(len(unique_tags))
+    if len(punctuations) == 0 or raw_df == None:
+        processe_data_state["step"] = "load_data_from_csv"
+        processe_data_state["message"] = "Đang xử lí dữ liệu từ data mẫu..."
+        punctuations = set(string.punctuation)
+        raw_df = pd.read_csv("./Dataset_articles_NoID.csv")
+        raw_df['Tags'] = raw_df['Tags'].apply(ast.literal_eval)
+        unique_tags = set(
+            tag for tags_list in raw_df['Tags'] for tag in tags_list)
+        print(len(unique_tags))
 
-    # if model is None:  # double check inside lock
-    #     processe_data_state["step"] = "load_model"
-    #     processe_data_state["message"] = "Đang load model..."
-    #     model = VnCoreNLP(
-    #         annotators=["wseg", "pos", "ner", "parse"], save_dir='.')
+    if model is None:  # double check inside lock
+        processe_data_state["step"] = "load_model"
+        processe_data_state["message"] = "Đang load model..."
+        model = VnCoreNLP(
+            annotators=["wseg", "pos", "ner", "parse"], save_dir='.')
     processe_data_state["step"] = ""
     processe_data_state["message"] = ""
 
@@ -303,6 +303,7 @@ def root(body: RequestBody):
     text = '.'.join(body.text.split("\n"))
     text = preprocessedText(text)
 
+    # Underthesea TAGS ====================================================
     # POS tagging
     pos_tags = pos_tag(text)
 
@@ -310,30 +311,60 @@ def root(body: RequestBody):
     noun_tags = [word for word, tag in pos_tags if tag in ["N", "Np", "Nc"]]
 
     # Lọc danh từ có độ dài >= 3 và không chứa số/ký tự lạ
-    filtered_nouns = [word for word in noun_tags if len(word) > 2 and word.isalpha()]
+    filtered_nouns = [word for word in noun_tags if len(
+        word) > 2 and word.isalpha()]
 
     # Loại bỏ trùng lặp và chuẩn hóa
-    tags = sorted(set(filtered_nouns), key=lambda x: filtered_nouns.index(x))
+    u_tags = sorted(set(filtered_nouns), key=lambda x: filtered_nouns.index(x))
 
     # In danh sách tags gợi ý
     print("Tags đề xuất:")
-    for tag in tags:
+    for tag in u_tags:
         print("-", tag)
+    # Underthesea TAGS ====================================================
+
+    # Model TAGS ====================================================
     # annotation_result = model.annotate_text(text)
-    # word_segment_result = model.word_segment(text)
+    word_segment_result = model.word_segment(text)
 
-    # # Features Extraction
-    # vectorizer = TfidfVectorizer()
-    # tfidf_matrix = vectorizer.fit_transform(word_segment_result)
-    # features = vectorizer.get_feature_names_out()
+    # Features Extraction
+    vectorizer = TfidfVectorizer()
+    tfidf_matrix = vectorizer.fit_transform(word_segment_result)
+    features = vectorizer.get_feature_names_out()
+    tfidf_df = pd.DataFrame(tfidf_matrix.toarray(), columns=features)
+    f_tags = [' '.join(tag.split('_')) for tag in features]
+    m_tags = extract_tags_from_text(text)
+    # Model TAGS ====================================================
 
-
-    # matched_tags = extract_tags_from_text(text)
+    # Unique TAGS ====================================================
+    # Function to remove accents from Vietnamese characters
+    def remove_accents(input_str):
+        import unicodedata
+        nfkd_form = unicodedata.normalize('NFKD', input_str)
+        return ''.join([c for c in nfkd_form if not unicodedata.combining(c)])
+    unique_tags = list(set(u_tags+f_tags+m_tags))
+    unique_tags.sort(key=len, reverse=True)
+    whitelist = []
+    blacklist = []
+    for item in unique_tags:
+        if item not in blacklist:
+            normalized_item = remove_accents(item.lower())
+            whitelist.append(item)
+            # Kiểm tra tồn tại
+            for other_item in unique_tags:
+                normalized_other_item = remove_accents(other_item.lower())
+                if normalized_other_item in normalized_item and len(normalized_other_item) < len(normalized_item):
+                    if other_item not in blacklist:
+                        blacklist.append(other_item)
+                        blacklist.sort(key=len, reverse=True)
+    word_list = whitelist
+    # Unique TAGS ====================================================
 
     result = {
         # "annotation_result": annotation_result,
         # "features": [f for f in features],
-        "tags": tags,
+        "words": word_list,
+        # "blacklist": blacklist,
         # "unique_tags": unique_tags,
         # "word_segment_result": word_segment_result
     }

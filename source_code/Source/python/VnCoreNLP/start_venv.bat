@@ -1,6 +1,5 @@
 @echo off
-chcp 65001 >nul
-call .\.venv\Scripts\activate.bat
+call .\.venv\Scripts\activate
 cd py_vncorenlp
 uvicorn vncorenlp:app --reload
 pause
