@@ -10,7 +10,7 @@ import type { ScheduleInfo } from "@/src/dtos/tour.dto";
         {itinerary.map((item) => (
           <div key={item.index} className="bg-white shadow p-4 rounded-lg">
             <h3 className="text-lg font-bold text-blue-600">{item.date_label}: {item.title}</h3>
-            <p>{item.detail_html}</p>
+            <div dangerouslySetInnerHTML={{ __html: item.detail_html }} ></div>
           </div>
         ))}
       </div>
