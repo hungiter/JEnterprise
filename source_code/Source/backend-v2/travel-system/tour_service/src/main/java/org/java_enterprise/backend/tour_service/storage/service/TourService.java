@@ -43,4 +43,21 @@ public class TourService {
         ).collect(Collectors.toList());
     }
 
+    public List<TourSummaryDTO> getTourSummeries(List<String> tour_codes) {
+        // Lấy tất cả các tour có tourCode nằm trong danh sách tour_codes
+        return tourRepository.findByTourCodeIn(tour_codes).stream()
+                .map(tour -> new TourSummaryDTO(
+                        tour.getTourCode(),
+                        tour.getThumbnail(),
+                        tour.getTitle(),
+                        tour.getDeparture(),
+                        tour.getDuration(),
+                        tour.getVehicle(),
+                        tour.getPrice(),
+                        tour.getPriceValue(),
+                        tour.getTag(),
+                        tour.getCalendar()
+                ))
+                .collect(Collectors.toList());
+    }
 }

@@ -1,6 +1,7 @@
 package org.java_enterprise.backend.tour_service.storage.controller;
 
 import org.java_enterprise.backend.tour_service.storage.dto.TourSummaryDTO;
+import org.java_enterprise.backend.tour_service.storage.model.SummaryToursRequest;
 import org.java_enterprise.backend.tour_service.storage.model.Tour;
 import org.java_enterprise.backend.tour_service.storage.service.TourService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,19 +23,24 @@ public class TourController {
     }
 
     @GetMapping("/{code}")
-    public Tour getTour(@PathVariable String code) {
+    public Tour getTour(@PathVariable("code") String code) {
         return tourService.getTourByCode(code);
     }
 
     @GetMapping
     public List<Tour> getAllTours() {
-        List<Tour> result =  tourService.getAllTours();
-        System.out.println("Currently have "+ result.size() + " tours");
+        List<Tour> result = tourService.getAllTours();
+        System.out.println("Currently have " + result.size() + " tours");
         return result;
     }
 
     @GetMapping("/summary")
-    public List<TourSummaryDTO> getTourSummaries() {
+    public List<TourSummaryDTO> getAllTourSummaries() {
         return tourService.getAllTourSummaries();
+    }
+
+    @PostMapping("/summary_tours")
+    public List<TourSummaryDTO> getSummaryTours(@RequestBody SummaryToursRequest request) {
+        return tourService.getTourSummeries(request.getTour_codes());
     }
 }

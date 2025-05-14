@@ -27,5 +27,5 @@ public class TourDetail {
     @Field("vehicles")
     private String vehicles;
     @Field("trip_plan")
-    private List<String> trip_plan;
+    private List<ScheduleInfo> trip_plan;
 }
