@@ -1,7 +1,9 @@
 import threading
+import time
 from fastapi.middleware.cors import CORSMiddleware
 from bson.json_util import dumps
 from fastapi import FastAPI
+import asyncio
 import json
 
 from index import clear_terminal, cache
@@ -9,6 +11,7 @@ from service.TourService import fetch_mongo_tours, get_cache_tour
 from service.DictionaryService import fetch_dictionary_create, get_cache_dictionary, get_cache_location_word
 from service.FeatureExtractorService import analyze_tour_features, get_cache_tour_features
 from service.RecommendationService import create_similarity_matrix, get_top_n_similar_tours, get_similar_matrix
+from py_vncorenlp.vncorenlp import create_nlp_model, processe_data_state
 # App API
 app = FastAPI()
 app.add_middleware(
@@ -23,6 +26,15 @@ clear_terminal()
 @app.get("/")
 def root():
     return {"message": "Webcrawler API is working!"}
+
+
+@app.on_event("startup")
+async def start_training():
+    try:
+        asyncio.create_task(create_nlp_model())
+    except:
+        # Do nothing
+        return True
 
 
 @app.get("/cache_tour")
@@ -67,6 +79,14 @@ def data_processed_auto():  # DAILY AUTO RUN
             step = "dict_create"
             step_alias = "Creating dictionary..."
             fetch_dictionary_create(step, step_alias)
+
+            step = "nlp_training"
+            step_alias = "Model Training..."
+            while processe_data_state["step"] != "":
+                step = processe_data_state["step"]
+                message = processe_data_state["message"]
+                print(f"{step_alias} - {step}: {message}")
+                time.sleep(2)
 
             step = "extract_tour_feature"
             step_alias = "Extracting..."

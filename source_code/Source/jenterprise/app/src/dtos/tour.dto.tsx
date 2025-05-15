@@ -68,3 +68,8 @@ export interface TourFeature {
     summary: string[];
     is_similar: boolean;
   }
+
+  export interface SimilarityResponse {
+    success: boolean;
+    data: RecommendResult;
+  }

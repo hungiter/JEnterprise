@@ -14,18 +14,26 @@ import { set } from "date-fns";
 import { fetchSimilarTours } from "@/src/services/tour/TourSimilarFound";
 import { fetchSummaryTours } from "@/src/services/tour/SummaryToursFetch";
 import TourCard from "./components/TourCard";
+import JourneyDetail from "./components/JourneyDetail";
+import SimilarTourCard from "./components/SimilarTourCard";
 
 export default function TourDetail() {
   const { tourCode } = useParams<{ tourCode: string }>();
+
+
   const [tour, setTour] = useState<Tour | null>(null);
+  const [tourError, setTourError] = useState<string | null>(null);
+  const [tourLoading, setTourLoading] = useState<boolean>(true);
+
   const [recommendResult, setRecommendResult] = useState<RecommendResult | null>(null);
   const [similarTours, setSimilarTours] = useState<TourSummary[] | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [similarError, setSimilarError] = useState<string | null>(null);
+  const [similarLoading, setSimilarLoading] = useState<boolean>(true);
+  const [similarContent, setSimilarContent] = useState<any>(null);
   useEffect(() => {
     if (!tourCode) {
-      setError('Tour code is missing.');
-      setLoading(false);
+      setTourError('Tour code is missing.');
+      setTourLoading(false);
       return;
     }
 
@@ -34,9 +42,9 @@ export default function TourDetail() {
         const fetchedTour = await fetchTourByCode(tourCode);
         setTour(fetchedTour);
       } catch (error) {
-        setError('Failed to fetch tour details.');
+        setTourError(`Failed to fetch similar ${tourCode}'s details:\n${error}`);
       } finally {
-        setLoading(false);
+        setTourLoading(false);
       }
     };
 
@@ -45,9 +53,10 @@ export default function TourDetail() {
         const fetchedResult = await fetchSimilarTours(tourCode);
         setRecommendResult(fetchedResult);
       } catch (error) {
-        setError('Failed to fetch similar tour.');
+        setSimilarError(`Failed to fetch similar tour codes:\n${error}`);
+        setSimilarLoading(false);
       } finally {
-        setLoading(false);
+        /* Do nothing */
       }
     };
 
@@ -62,9 +71,9 @@ export default function TourDetail() {
           const fetchedResult = await fetchSummaryTours(recommendResult.summary);
           setSimilarTours(fetchedResult);
         } catch (error) {
-          setError('Failed to fetch Summary Tours.');
+          setSimilarError(`Failed to fetch similar tours's info:\n${error}`);
         } finally {
-          setLoading(false);
+          setSimilarLoading(false);
         }
       };
 
@@ -72,9 +81,38 @@ export default function TourDetail() {
     }
   }, [recommendResult]);
 
+  useEffect(() => {
+    let tmpContent;
+    if (similarLoading) {
+      tmpContent = (
+        <div className="animate-pulse h-4 w-full bg-gray-200 rounded">
+          {/* Loading... */}
+        </div>
+      );
+    } else if (similarError) {
+      tmpContent = (
+        <div className="text-center w-full text-red-500 font-bold">
+          {similarError}
+        </div>
+      );
+    } else if (similarTours && similarTours.length > 0) {
+      tmpContent = similarTours.map((tour) => (
+        <SimilarTourCard key={tour.tour_code} tour={tour} />
+      ));
+    } else {
+      tmpContent = (
+        <div className="text-center text-gray-400 italic">
+          Không có tour tương tự.
+        </div>
+      );
+    }
+
+    setSimilarContent(tmpContent)
+  }, [tourCode, similarLoading, similarError, similarTours])
 
   if (!tour) return <div className="text-center text-red-500">Không tìm thấy tour</div>;
-  // if (!similarTours) return <div className="text-center text-red-500">Không tìm thấy tour tuong tu</div>;
+
+
   return (
     <div className="container mx-auto text-black">
       <h1 className="text-3xl font-bold mb-4">{tour.title}</h1>
@@ -91,37 +129,18 @@ export default function TourDetail() {
               </CardContent>
             </Card>
 
+            {/* Lịch khởi hành sắp tới */}
             <div className="mt-6">
               <UpcomingTourDates dates={tour.calendar} />
+            </div>
+            {/* Hành trình */}
+            <div className="mt-6">
+              <JourneyDetail locations={tour.tourDetail.sightseeing_spots.trim().split(", ").join(",").split(",")} />
             </div>
             <TripExtraInfo info={tour.tourDetail} />
 
             <Card className="container mx-auto mt-4">
-              <CardContent className="flex flex-col md:flex-row gap-6">
-                {/* Hành trình */}
-                <div className="mb-6">
-                  <h2 className="text-xl font-semibold mb-2 text-gray-800">Hành trình:</h2>
-                  <p className="mb-4">
-                    {tour.tourDetail.sightseeing_spots.trim().split(", ").join(",").split(",").join(" - ")}
-                  </p>
-
-                  {/* Điểm nhấn chương trình */}
-                  <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500 shadow-sm">
-                    <h3 className="text-lg font-semibold text-blue-800 mb-2">Điểm nhấn chương trình</h3>
-                    <div className="space-y-1 text-gray-700">
-                      {tour.tourDetail.sightseeing_spots}
-                    </div>
-                    {/* <ul className="list-disc list-inside space-y-1 text-gray-700">
-                      <li>Chinh phục Cột cờ Lũng Cú – điểm cực Bắc của Tổ quốc</li>
-                      <li>Chinh phục đèo Mã Pí Lèng – Top 4 "Tứ đại đỉnh đèo" Việt Nam</li>
-                      <li>Khám phá thác Bản Giốc – một trong những thác nước đẹp nhất Đông Nam Á</li>
-                      <li>Du thuyền trên hồ Ba Bể thơ mộng</li>
-                      <li>Thưởng thức ẩm thực vùng cao đặc sắc</li>
-                    </ul> */}
-                  </div>
-                </div>
-
-
+              <CardContent>
                 {/* Lịch trình chi tiết */}
                 <div className="space-y-4">
                   {/* <TourItinerary itinerary={tour.itinerary} /> */}
@@ -131,14 +150,14 @@ export default function TourDetail() {
             </Card>
 
             <Card className="container mx-auto mt-4">
-              <CardContent className="flex flex-col md:flex-row gap-6">
-                {/* {similarTours.map((tour) => (
-                  <TourCard key={tour.tour_code} tour={tour} />
-                ))} */}
+              <CardContent>
+                <div className="lg:overflow-x-auto xl:overflow-x-hidden w-full">
+                  <div className="flex flex-col w-full lg:flex-row lg:w-max gap-6 py-2 ">
+                    {similarContent}
+                  </div>
+                </div>
               </CardContent>
             </Card>
-
-
           </div>
 
           <div className="hidden sm:none md:block lg:w-1/4 md:w-1/3 rounded-lg">

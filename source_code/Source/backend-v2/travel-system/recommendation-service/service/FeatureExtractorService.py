@@ -13,6 +13,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from models.TourModel import TourFeature
 from service.TourService import dict_to_tour_model
+from py_vncorenlp.vncorenlp import tag_extractor
 DB_NAME = "JEnterprise"
 TOURS_FEATURES_TABLE = "tour_features"
 tour_features_cache = "cache_tour_features"
@@ -176,6 +177,7 @@ def save_features_from_cache():
                             tour_code=item.get("tour_code", ""),
                             locations=item.get("locations", []),
                             activities=item.get("activities", []),
+                            activities=item.get("words", []),
                         )
 
                         list_features.append(feature)
@@ -184,13 +186,15 @@ def save_features_from_cache():
                             feature = TourFeature(
                                 tour_code=item.tour_code,
                                 locations=item.locations,
-                                activities=item.activities
+                                activities=item.activities,
+                                words=item.words
                             )
                             list_features.append(feature)
                         except Exception as e:
                             print_new_message(
                                 f"save_features_from_cache.list_item_append_error: {e}")
                 try:
+                    print(len(list_features))
                     if list_features:
                         save_features(list_features)
                 except Exception as e:
@@ -244,11 +248,14 @@ def analyze_process():
                         plan = item.detail_html
                         try:
                             soup = BeautifulSoup(plan, "html.parser")
-                            trip_plan = f"{trip_plan}\n{soup.get_text(strip=True)}"
+                            plan_text = soup.get_text(
+                                strip=True, separator=" ")
+                            trip_plan = f"{trip_plan}\n{plan_text}"
                         except Exception as e:
                             print(e)
                             break
 
+                    # LOCATION EXTRACTOR ===================================START
                     content = f"{tour_title} {trip_plan}"
                     content_lower = content.lower()
 
@@ -295,11 +302,22 @@ def analyze_process():
 
                     # Loại trùng
                     final_locations = list(set(final_locations))
+                    # LOCATION EXTRACTOR ===================================END
+
+                    # VNCORENLP WORDS EXTRACTOR ============================START
+                    words = []
+                    try:
+                        words_extract_result = tag_extractor(trip_plan)
+                        words = words_extract_result["result"]
+                    except:
+                        pass
+                    # VNCORENLP WORDS EXTRACTOR ============================END
 
                     # Gán kết quả vào TourFeature
                     tour_feature = TourFeature(
                         tour_code=tour_model.tour_code,
-                        locations=final_locations
+                        locations=final_locations,
+                        words=words
                     )
                     tour_features.append(tour_feature.dict())
 
@@ -336,6 +354,8 @@ def analyze_tour_features(step_name: str, step_alias: str):
                 dictionary_execute = True
                 future = wait_tour_feature_extractor_executors.submit(
                     analyze_process)
+        else:
+            save_features_from_cache()
         if future:
             while True:
                 try:
