@@ -7,5 +7,14 @@ export default defineConfig({
   plugins: [tailwindcss(), reactRouter(), tsconfigPaths()],
   css: {
     devSourcemap: true
+  },
+  server: {
+    host: true,
+    allowedHosts: [
+      'pure-calf-lively.ngrok-free.app' // Add 5173 to ngrok first -> add url to here
+    ]
   }
 });
+
+// TOKEN 2xA8jVNwDNatIguFQoduaDn3T2F_2gVutwe58ELAtegEZWRkR
+// docker run -it -e NGROK_AUTHTOKEN=2xA8jVNwDNatIguFQoduaDn3T2F_2gVutwe58ELAtegEZWRkR ngrok/ngrok http http://26.120.21.89:5173 --url=pure-calf-lively.ngrok-free.app
