@@ -10,12 +10,12 @@ import UpcomingTourDates from "./components/UpcomingTourDates";
 import TripExtraInfo from "./components/TripExtraInfo";
 import type { RecommendResult, Tour, TourSummary } from "@/src/dtos/tour.dto";
 import { fetchTourByCode } from "@/src/services/tour/TouDetaillFetch";
-import { set } from "date-fns";
 import { fetchSimilarTours } from "@/src/services/tour/TourSimilarFound";
 import { fetchSummaryTours } from "@/src/services/tour/SummaryToursFetch";
-import TourCard from "./components/TourCard";
 import JourneyDetail from "./components/JourneyDetail";
 import SimilarTourCard from "./components/SimilarTourCard";
+import { createPaymentOrder } from "@/src/services/payment/CreateOrder";
+import { user } from "@/src/services/session"
 
 export default function TourDetail() {
   const { tourCode } = useParams<{ tourCode: string }>();
@@ -30,6 +30,10 @@ export default function TourDetail() {
   const [similarError, setSimilarError] = useState<string | null>(null);
   const [similarLoading, setSimilarLoading] = useState<boolean>(true);
   const [similarContent, setSimilarContent] = useState<any>(null);
+
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
+  const [paymentUrlError, setPaymentUrlError] = useState<string | null>(null);
+  const [paymentUrlLoading, setPaymentUrlLoading] = useState<boolean>(false);
   useEffect(() => {
     if (!tourCode) {
       setTourError('Tour code is missing.');
@@ -108,10 +112,41 @@ export default function TourDetail() {
     }
 
     setSimilarContent(tmpContent)
-  }, [tourCode, similarLoading, similarError, similarTours])
+  }, [tourCode, similarLoading, similarError, similarTours]);
+
+  const getPaymentUrl = async () => {
+    try {
+      if (!user) {
+        console.log("Chưa đăng nhập!!!")
+        return
+      }
+      if (!tour) {
+        console.log("Tour không tồn tại!!!")
+        return
+      }
+
+      setPaymentUrlLoading(true);
+      const fetchedResult = await createPaymentOrder(tour, user);
+      if (fetchedResult.success) {
+        setPaymentUrl(fetchedResult.url);
+      } else {
+        setPaymentUrlError(`Failed to fetch similar tours's info:\n${fetchedResult.message}`);
+      }
+    } catch (error) {
+      setPaymentUrlError(`Failed to fetch similar tours's info:\n${error}`);
+    } finally {
+      setPaymentUrlLoading(false);
+    }
+  };
+  useEffect(() => {
+    if (paymentUrl) {
+      // window.open(paymentUrl, '_blank');
+      window.location.href = paymentUrl;
+    }
+  }, [paymentUrl])
+
 
   if (!tour) return <div className="text-center text-red-500">Không tìm thấy tour</div>;
-
 
   return (
     <div className="container mx-auto text-black">
@@ -177,13 +212,18 @@ export default function TourDetail() {
                 </div>
 
                 <p className="mt-2">
-                  <Link to={`/tours/${tour.tourCode}`}>
+                  {/* <Link to={`/tours/${tour.tourCode}`}>
                     <button className="bg-blue-500 md:w-full text-white px-4 py-2 rounded">
                       <div className="flex flex-col md:flex-row items-center justify-center gap-2 w-full h-full">
                         <div className="text-sm font-semibold">Chọn ngày khởi hành</div>
                       </div>
                     </button>
-                  </Link>
+                  </Link> */}
+                  <button className="bg-blue-500 md:w-full text-white px-4 py-2 rounded" onClick={getPaymentUrl}>
+                    <div className="flex flex-col md:flex-row items-center justify-center gap-2 w-full h-full">
+                      <div className="text-sm font-semibold">Đặt tour</div>
+                    </div>
+                  </button>
                 </p>
               </CardContent>
             </Card>

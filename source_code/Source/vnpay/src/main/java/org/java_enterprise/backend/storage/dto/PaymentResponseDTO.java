@@ -6,12 +6,13 @@ import lombok.Data;
 @Data
 @Builder
 public class PaymentResponseDTO {
-    private String orderDescription;
-    private String transactionId;
-    private String orderId;
-    private String paymentMethod;
-    private String paymentId;
     private boolean success;
-    private String token;
+    private String tourCode;
+    private String orderId;
+    private String transactionId;
+    private String paymentId;
+    private String orderDescription;
+    private String paymentMethod;
     private String vnPayResponseCode;
+    private String token;
 }

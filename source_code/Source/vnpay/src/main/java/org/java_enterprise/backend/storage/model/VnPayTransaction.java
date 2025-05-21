@@ -12,18 +12,13 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Document(collection = "vnpay_transactions")
 public class VnPayTransaction {
-
     @Id
     private String id;
-
+    private String username;
+    private String tourCode;
     private String orderDescription;
-    private String transactionId;
-    private String orderId;
-    private String paymentMethod;
-    private String paymentId;
-    private boolean success;
-    private String token;
-    private String vnPayResponseCode;
-
+    private String status;
+    private Long createAtEpoch; // epoch
+    private Long expireAt; // epoch
     private LocalDateTime createdAt;
 }

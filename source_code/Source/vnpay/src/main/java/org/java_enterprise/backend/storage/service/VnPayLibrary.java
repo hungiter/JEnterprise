@@ -5,9 +5,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.Getter;
 import org.java_enterprise.backend.storage.dto.PaymentResponseDTO;
 import org.springframework.util.MultiValueMap;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.net.URLEncoder;
+
+import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.*;
@@ -19,7 +18,6 @@ public class VnPayLibrary {
 
     public PaymentResponseDTO getFullResponseData(MultiValueMap<String, String> queryParams, String hashSecret) {
         VnPayLibrary vnPay = new VnPayLibrary();
-
         for (String key : queryParams.keySet()) {
             if (key != null && key.startsWith("vnp_")) {
                 vnPay.addResponseData(key, queryParams.getFirst(key));
@@ -101,6 +99,26 @@ public class VnPayLibrary {
 
         String secureHash = hmacSHA512(secretKey, queryString);
         return baseUrl + "?" + queryString + "&vnp_SecureHash=" + secureHash;
+    }
+
+    public String getQueryParam(String url, String paramName) {
+        try {
+            URI uri = new URI(url);
+            String query = uri.getQuery();
+            String[] params = query.split("&");
+
+            for (String param : params) {
+                String[] pair = param.split("=", 2);
+                String key = URLDecoder.decode(pair[0], StandardCharsets.UTF_8);
+                if (key.equals(paramName)) {
+                    String value = pair.length > 1 ? URLDecoder.decode(pair[1], StandardCharsets.UTF_8) : "";
+                    return value;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     public boolean validateSignature(String inputHash, String secretKey) {

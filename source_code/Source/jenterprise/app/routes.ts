@@ -24,6 +24,8 @@ export default [
         // Account's pages
         route("account/:accountId", "./src/pages/Account/AccountInfoPage.tsx"),
         route("about", "./src/pages/About/AboutPage.tsx"),
+        // Payment pags
+        route("payment-result", "./src/pages/Payment/PaymentResultPage.tsx"),
         // Support pages
         route("privacypolicy", "./src/pages/XXX/PrivacyPolicyPage.tsx"),
         route("termofuse", "./src/pages/XXX/TermOfUsePage.tsx"),

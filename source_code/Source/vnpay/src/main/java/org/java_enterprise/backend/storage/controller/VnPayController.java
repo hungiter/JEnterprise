@@ -37,10 +37,9 @@ public class VnPayController {
     @GetMapping("/execute")
     public ResponseEntity<?> paymentExecute(HttpServletRequest request) {
         PaymentResponseDTO result = vnPayService.paymentExecute(request);
-
         // Sau khi xử lý, redirect về frontend kèm trạng thái
-//        String redirectUrl = "http://localhost:3000/payment-result?success=" + result.isSuccess();
-        String redirectUrl = "https://google.com";
+//        String redirectUrl = "http://pure-calf-lively.ngrok-free.app/payment-result?success=" + result.isSuccess() + "&&tourCode=" + result.getTourCode();
+        String redirectUrl = "http://localhost:5173/payment-result?success=" + result.isSuccess() + "&&tourCode=" + result.getTourCode();
         return ResponseEntity.status(HttpStatus.FOUND).header("Location", redirectUrl).build();
     }
 }

@@ -17,4 +17,5 @@ export default defineConfig({
 });
 
 // TOKEN 2xA8jVNwDNatIguFQoduaDn3T2F_2gVutwe58ELAtegEZWRkR
-// docker run -it -e NGROK_AUTHTOKEN=2xA8jVNwDNatIguFQoduaDn3T2F_2gVutwe58ELAtegEZWRkR ngrok/ngrok http http://26.120.21.89:5173 --url=pure-calf-lively.ngrok-free.app
+// npm dev run -> NetworkIP
+// docker run -it -e NGROK_AUTHTOKEN=2xA8jVNwDNatIguFQoduaDn3T2F_2gVutwe58ELAtegEZWRkR ngrok/ngrok http NetworkIP --url=pure-calf-lively.ngrok-free.app

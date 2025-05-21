@@ -8,4 +8,6 @@ public class PaymentInformationDTO {
     private double amount;
     private String orderDescription;
     private String name;
+    private String tourCode;
+    private String ip;
 }

@@ -9,9 +9,9 @@ from pymongo.errors import PyMongoError
 from index import cache, cache_duration, mongo_client, print_new_message, clear_message, force_extract_feature
 from bson.json_util import dumps
 from fastapi.responses import JSONResponse
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from models.TourModel import TourFeature
+from models.TourModel import Tour, TourFeature
 from service.TourService import dict_to_tour_model
 from py_vncorenlp.vncorenlp import tag_extractor
 DB_NAME = "JEnterprise"
@@ -41,8 +41,8 @@ def build_features_cache_index():
         for item in cache_data:
             obj = item if isinstance(
                 item, TourFeature) else TourFeature(**item)
-            key = (obj.city, obj.country, obj.admin_name, obj.heritage)
-            index[key] = obj
+            print(obj)
+            index[obj.tour_code] = obj
     return index
 
 
@@ -113,8 +113,9 @@ def save_features(data: List[TourFeature]):
             need_update = False
             existing_locations = []
 
-            primary_key = (feature.tour_code)
-            existed_feature = feature_index.get(primary_key)
+            primary_key = {"tour_code": feature.tour_code}
+            existed_feature_dict = feature_index.get(feature.tour_code)
+            existed_feature = dict_to_tour_feature_model(existed_feature_dict)
             try:
                 if existed_feature:
                     print_new_message(
@@ -130,19 +131,19 @@ def save_features(data: List[TourFeature]):
 
             if existed_feature:
                 existing_locations = existed_feature.locations
-                if existing_locations != [] and feature.locations not in existing_locations:
-                    for item in feature.locations:
-                        if item not in existing_locations:
-                            need_update = True
-                            continue
-                extract_features_status[
-                    "message"] = f"{prefix}-Update object {primary_key}"
+                for item in feature.locations:
+                    if item not in existing_locations:
+                        need_update = True
+                        break
+                extract_features_status["message"] = f"{prefix}-Update object {feature.tour_code}"
             else:
                 need_update = True
-                extract_features_status["message"] = "{prefix}-Add new object"
+                extract_features_status["message"] = f"{prefix}-Add new object"
 
             if need_update == True:
                 if feature.locations:
+                    locations = set(existing_locations + feature.locations)
+                    print(locations)
                     feature.locations = list(
                         set(existing_locations + feature.locations))
 
@@ -154,7 +155,7 @@ def save_features(data: List[TourFeature]):
         if bulk_ops:
             collection.bulk_write(bulk_ops, ordered=False)
 
-        cache.set(tour_features_cache, data, expire=cache_duration)
+        cache.set(tour_features_cache, data, expire=cache_duration*7)
         return True
     except Exception as e:
         print_new_message(f"save_features.mongo_error: {e}")
@@ -169,15 +170,17 @@ def save_features_from_cache():
             print_new_message(
                 "save_features_from_cache.create_list_for_save")
             data = cache[tour_features_cache]
+
             list_features = []
             if data:
+                cache.set(tour_features_cache, data, expire=cache_duration*7)
                 for item in data:
                     try:
                         feature = TourFeature(
                             tour_code=item.get("tour_code", ""),
                             locations=item.get("locations", []),
                             activities=item.get("activities", []),
-                            activities=item.get("words", []),
+                            words=item.get("words", []),
                         )
 
                         list_features.append(feature)
@@ -237,10 +240,12 @@ def analyze_process():
             multi_pattern = re.compile(
                 r'\b(?:' + '|'.join(escaped_multi) + r')\b')
 
-            for i, tour in enumerate(tours):
-                tour_model = dict_to_tour_model(tour)
+            curr = 0
+            total = len(tours)
+
+            def process_tour(i: int, tour_model: Tour | None):
                 if tour_model:
-                    extract_features_status["message"] = f"{i+1}/{len(tours)} - {tour_model.tour_code}"
+                    # extract_features_status["message"] = f"{i+1}/{len(tours)} - {tour_model.tour_code}"
                     tour_title = tour_model.title or ""
                     trip_plan = ""
                     trip_plans = tour_model.tour_detail.trip_plan or []
@@ -254,7 +259,6 @@ def analyze_process():
                         except Exception as e:
                             print(e)
                             break
-
                     # LOCATION EXTRACTOR ===================================START
                     content = f"{tour_title} {trip_plan}"
                     content_lower = content.lower()
@@ -321,15 +325,27 @@ def analyze_process():
                     )
                     tour_features.append(tour_feature.dict())
 
-                # Ghi cache sau khi hoàn tất
-                if tour_features:
-                    cache.set(tour_features_cache, tour_features,
-                              expire=cache_duration)
+                    return f"Tour {tour_model.tour_code}'s extracted finished"
+                return None
+
+            extract_features_status["message"] = "Start Feature Extractor"
+            with ThreadPoolExecutor(max_workers=10) as executor:
+                futures = [executor.submit(process_tour, i, dict_to_tour_model(tour))
+                           for i, tour in enumerate(tours)]
+                for future in as_completed(futures):
+                    result = future.result()
+                    if result:
+                        curr = curr + 1
+                        progress = curr/total
+                        message = f"{progress}% - {result}"
+                        extract_features_status["message"] = message
+
+            # Ghi cache sau khi hoàn tất
             if tour_features:
+                print("SAVED TOUR FEATURES")
+                cache.set(tour_features_cache, tour_features,
+                          expire=cache_duration)
                 save_features(tour_features)
-            # message = {"status": "success",
-            #            "tours": f"{len(tours)}", "location_words": f"{len(location_words)}", "tour_features": tour_features}
-            # print_new_message(f"{message}")
             return tour_features
         except Exception as e:
             message = {"status": "error", "message": f"{e}"}
@@ -376,9 +392,10 @@ def analyze_tour_features(step_name: str, step_alias: str):
                         future = None
                         break
                     else:
-                        payload = {"step": step_name, "step_alias": step_alias,
-                                   "data": {"status": "waiting", "step": extract_features_status["step"], "message": extract_features_status["message"]}}
-                        message = f"{json.dumps(payload, default=str)}"
+                        # payload = {"step": step_name, "step_alias": step_alias,
+                        #            "data": {"status": "waiting", "step": extract_features_status["step"], "message": extract_features_status["message"]}}
+                        # message = f"{json.dumps(payload, default=str)}"
+                        message = extract_features_status["message"]
                         print_new_message(
                             f"analyze_tour_features.future_waiting: {message}")
                         # time.sleep(sleep_time)
