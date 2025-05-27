@@ -21,11 +21,15 @@ public class TourMicroserviceController {
     private AppHeaders appHeaders;
 
     @GetMapping
+    public ResponseEntity<String> checkEndpoint() {
+        return ResponseEntity.ok("Endpoint is working!");
+    }
+
+    @GetMapping("/all")
     public ResponseEntity<String> getAllTours() {
         HttpHeaders headers = appHeaders.getHeaders();
 
         HttpEntity<String> entity = new HttpEntity<>(headers);
-
         try {
             String url = tourServiceUrl + "/api/tours";  // Sử dụng URL từ application.properties
             return restTemplate.exchange(
@@ -63,7 +67,7 @@ public class TourMicroserviceController {
     private ResponseEntity<String> forwardRequest(HttpMethod method, String path, String body) {
         HttpHeaders headers = appHeaders.getHeaders();
         HttpEntity<String> entity = new HttpEntity<>(body, headers);
-        String url = tourServiceUrl + "/api/tours" + path;
+        String url = tourServiceUrl + path;
 
         try {
             return restTemplate.exchange(url, method, entity, String.class);

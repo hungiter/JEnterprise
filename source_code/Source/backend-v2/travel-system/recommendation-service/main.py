@@ -16,7 +16,7 @@ from py_vncorenlp.vncorenlp import create_nlp_model, processe_data_state
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Change this to your frontend's URL in production
+    allow_origins=["http://localhost:8080","ultimately-flowing-stag.ngrok-free.app","pure-calf-lively.ngrok-free.app"],  # Change this to your frontend's URL in production
     allow_methods=["*"],
     allow_headers=["*"],
 )

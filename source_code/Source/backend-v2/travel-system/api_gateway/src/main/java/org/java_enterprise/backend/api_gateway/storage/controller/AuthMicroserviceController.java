@@ -20,6 +20,11 @@ public class AuthMicroserviceController {
     @Autowired
     private AppHeaders appHeaders;
 
+    @GetMapping
+    public ResponseEntity<String> checkEndpoint() {
+        return ResponseEntity.ok("Endpoint is working!");
+    }
+
     // POST /register
     @PostMapping("/register")
     public ResponseEntity<String> register(@RequestBody String registerRequestJson) {
@@ -42,7 +47,7 @@ public class AuthMicroserviceController {
     private ResponseEntity<String> forwardRequest(HttpMethod method, String path, String body) {
         HttpHeaders headers = appHeaders.getHeaders();
         HttpEntity<String> entity = new HttpEntity<>(body, headers);
-        String url = authServiceUrl + "/api/auth" + path;
+        String url = authServiceUrl + path;
 
         try {
             return restTemplate.exchange(url, method, entity, String.class);

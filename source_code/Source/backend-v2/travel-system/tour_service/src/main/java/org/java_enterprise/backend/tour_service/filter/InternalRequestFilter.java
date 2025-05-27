@@ -24,13 +24,13 @@ public class InternalRequestFilter implements Filter {
         HttpServletRequest req = (HttpServletRequest) servletRequest;
         HttpServletResponse res = (HttpServletResponse) servletResponse;
 
-        String internalSecret = req.getHeader("X-Internal-Secret");
-
-        if (!SECRET_KEY.equals(internalSecret)) {
-            res.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            res.getWriter().write("Forbidden: Invalid secret key.");
-            return;
-        }
+//        String internalSecret = req.getHeader("X-Internal-Secret");
+//
+//        if (!SECRET_KEY.equals(internalSecret)) {
+//            res.setStatus(HttpServletResponse.SC_FORBIDDEN);
+//            res.getWriter().write("Forbidden: Invalid secret key.");
+//            return;
+//        }
 
         filterChain.doFilter(req, res);
     }

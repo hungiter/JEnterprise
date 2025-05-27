@@ -13,7 +13,8 @@ public class CorsConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOrigins("http://localhost:5173") // React URL
+                        .allowedOrigins("*") // React URL
+                        .allowedOrigins("http://localhost:5173","ultimately-flowing-stag.ngrok-free.app","pure-calf-lively.ngrok-free.app") // React URL
                         .allowedMethods("*");
             }
         };
