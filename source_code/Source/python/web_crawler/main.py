@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 import diskcache
 from crawler.Crawler import fetch_tours
-from mongodb.MongoManager import update_tours
+from mongodb.MongoManager import update_old_tours, update_tours
 app = FastAPI()
 cache = diskcache.Cache("cache")  # lưu vào thư mục cache/
 cache_map = [{
@@ -21,12 +21,9 @@ cache_map = [{
 def root():
     return {"message": "Webcrawler API is working!"}
 
-# @app.get("/crawl", response_model=List[Tour])
-
-
 @app.get("/crawl")
 def crawl_tours():
-    clear_cache = False
+    clear_cache = True
     try:
         display_data = []
         for cache_item in cache_map:
@@ -54,3 +51,6 @@ def crawl_tours():
     except Exception as e:
         print(e)
         return {"message": "Check backend 'cache_map'"}
+
+# update_old_tours()
+crawl_tours()

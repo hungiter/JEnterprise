@@ -19,6 +19,7 @@ public class VnPayTransaction {
     private String orderDescription;
     private String status;
     private Long createAtEpoch; // epoch
-    private Long expireAt; // epoch
+    private Long expireAtEpoch; // epoch
     private LocalDateTime createdAt;
+    private LocalDateTime expireAt;
 }

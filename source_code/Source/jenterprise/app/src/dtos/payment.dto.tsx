@@ -18,3 +18,13 @@ export interface CreatePaymentUrlResponse {
     url: string
     message: string
 }
+
+export interface VnPayTransaction {
+    username: string
+    tourCode: string
+    orderDescription: string
+    paymentUrl: string
+    createAt: string
+    expireAt: string
+    status: string
+}
