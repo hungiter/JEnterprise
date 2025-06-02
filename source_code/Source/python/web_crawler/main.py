@@ -1,25 +1,41 @@
 from fastapi import FastAPI
 import diskcache
 from crawler.Crawler import fetch_tours
-from mongodb.MongoManager import update_old_tours, update_tours
+from mongodb.MongoManager import check_distinct_tour_id_in_instances, check_distinct_tour_id_in_tours, find_missing_tours, update_tours
 app = FastAPI()
 cache = diskcache.Cache("cache")  # lưu vào thư mục cache/
-cache_map = [{
-    "name": "dltk_data",
-    "link": "https://travel.com.vn/du-lich-tiet-kiem.aspx"
-}, {
-    "name": "dltc_data",
-    "link": "https://travel.com.vn/du-lich-tieu-chuan.aspx"
-}, {
-    "name": "dlgt_data",
-    "link": "https://travel.com.vn/du-lich-gia-tot.aspx"
-}
+cache_map = [  # Check
+    {  # Tiết kiệm - Start
+        "name": "dltk_data",
+        "link": "https://travel.com.vn/du-lich-tiet-kiem.aspx"
+    },  # Tiết kiệm - End
+    {  # Tiêu chuẩn - Start
+        "name": "dltc_data",
+        "link": "https://travel.com.vn/du-lich-tieu-chuan.aspx"
+    },  # Tiêu chuẩn - End
+    {# Giá tốt - Start
+        "name": "dlgt_data",
+        "link": "https://travel.com.vn/du-lich-gia-tot.aspx"
+    }, # Giá tốt - End
+    { # Cao cấp - Start
+        "name": "dlcc_data",
+        "link": "https://travel.com.vn/du-lich-cao-cap.aspx"
+    }, # Cao cấp - End
+     { # Châu Mỹ - Start
+        "name": "dlcm_data",
+        "link": "https://travel.com.vn/du-lich-nuoc-ngoai/tour-chau-my.aspx"
+    }, # Châu Mỹ - End
+     { # Caravan - Start
+        "name": "dlcrv_data",
+        "link": "https://travel.com.vn/du-lich-vietravel.aspx?text=caravan"
+    }, # Caravan - End
 ]
 
 
 @app.get("/")
 def root():
     return {"message": "Webcrawler API is working!"}
+
 
 @app.get("/crawl")
 def crawl_tours():
@@ -53,4 +69,12 @@ def crawl_tours():
         return {"message": "Check backend 'cache_map'"}
 
 # update_old_tours()
-crawl_tours()
+# crawl_tours()
+# def count_tours_in_tours():
+#     check_distinct_tour_id_in_tours()
+# def count_tours_in_instances():
+#     check_distinct_tour_id_in_instances()
+def get_missing_tours():
+    find_missing_tours()
+
+find_missing_tours()

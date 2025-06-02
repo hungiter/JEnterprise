@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import os
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import diskcache
@@ -11,8 +12,8 @@ from crawler.TourModel import ScheduleInfo, OldTour, TourDetail
 import re
 crawl_target = "https://travel.com.vn"
 cache = diskcache.Cache("cache")  # lưu vào thư mục cache/
-page_loading_delay_time = 2  # 2 seconds
-# page_loading_delay_time = 5  # 5 seconds
+# page_loading_delay_time = 2  # 2 seconds
+page_loading_delay_time = 5  # 5 seconds
 
 
 def get_tour_from_html(url: str, html: str):
@@ -189,126 +190,6 @@ def fetch_tour(url: str, tour_id: str):
     except Exception as e:
         return tour_detail
 
-
-# def get_tours_from_html(html: str):
-#     soup = BeautifulSoup(html, 'html.parser')
-#     # tour_list = tour_list_div.findChild("div")
-#     tour_list = soup.find_all('div', class_='card-filter-desktop')
-#     tours: List[OldTour] = []
-#     index = 0
-#     for tour_div in tqdm(tour_list, desc="Processing tours", unit=""):
-#         try:
-#             tour_id = ""
-#             tour_thumbnail = ""
-#             tour_tag = ""
-#             tour_title = ""
-#             tour_departure = ""
-#             tour_staytime = ""
-#             tour_vehicle = ""
-#             tour_calendar = []
-#             tour_price_value = 0
-#             tour_price_text = ""
-#             tour_detail_link = ""
-#             tour_detail = TourDetail()
-#             try:
-#                 thumbnail_div = tour_div.findChild(
-#                     'div', class_='card-filter-desktop__thumbnail')
-#                 if thumbnail_div:
-#                     thumbnail_img = thumbnail_div.findChild('img')
-#                     if thumbnail_img:
-#                         tour_thumbnail = thumbnail_img['src']
-
-#                     tour_tag_div = thumbnail_div.find(
-#                         'div', class_=lambda x: x and 'tour-card--tags__tag' in x.split())
-#                     if tour_tag_div:
-#                         tour_span_tag = tour_tag_div.findChild('span')
-#                         tour_tag = tour_span_tag.text
-
-#                     thumbnail_div.decompose()
-#             except Exception as e:
-#                 pass
-
-#             try:
-#                 tour_info_div = tour_div.findChild(
-#                     'div', class_='card-filter-desktop__content')
-#                 if tour_info_div:
-#                     tour_title_a = tour_info_div.find(
-#                         'a', class_=lambda x: x and 'card-filter-desktop__content--header-title' in x.split())
-#                     if tour_title_a:
-#                         tour_title = tour_title_a['title']
-#                         tour_detail_link = f"{crawl_target}{tour_title_a['href']}"
-#                         tour_title_a.decompose()
-
-#                     tour_id_div = tour_info_div.find(
-#                         'div', class_=lambda x: x and 'info-tour-tourCode' in x.split())
-#                     if tour_id_div:
-#                         tour_id = tour_id_div.find('p').text
-#                         tour_id_div.decompose()
-
-#                     tour_departure_div = tour_info_div.find(
-#                         'div', class_=lambda x: x and 'info-tour-departure' in x.split())
-#                     if tour_departure_div:
-#                         tour_departure = tour_departure_div.find('p').text
-#                         tour_departure_div.decompose()
-
-#                     tour_staytime_div = tour_info_div.find(
-#                         'div', class_=lambda x: x and 'info-tour-dayStayText--time' in x.split())
-#                     if tour_staytime_div:
-#                         tour_staytime = tour_staytime_div.find('p').text
-#                         tour_staytime_div.decompose()
-
-#                     tour_vehicle_div = tour_info_div.find(
-#                         'div', class_=lambda x: x and 'info-tour-dayStayText' in x.split())
-#                     if tour_vehicle_div:
-#                         tour_vehicle = tour_vehicle_div.find('p').text
-#                         tour_vehicle_div.decompose()
-
-#                     tour_calendar_div = tour_info_div.find(
-#                         'div', class_=lambda x: x and 'info-tour-calendar' in x.split())
-#                     if tour_calendar_div:
-#                         start_date_divs = tour_calendar_div.findAll(
-#                             'div', class_='list-item')
-#                         tour_calendar = [date.text.strip()
-#                                          for date in start_date_divs]
-#                         tour_calendar = parse_dates_with_year_rollover(
-#                             tour_calendar)
-#                         tour_calendar_div.decompose()
-
-#                     tour_price_div = tour_info_div.find(
-#                         'div', class_='card-filter-desktop__content--price-newPrice')
-#                     if tour_price_div:
-#                         tour_price_text = tour_price_div.find('p').text
-#                         tour_price_value = int(
-#                             re.sub(r'\D', '', tour_price_text))
-#                         tour_price_div.decompose()
-#                     tour_info_div.decompose()
-#             except Exception as e:
-#                 print(f"Error: {e}")
-
-#             try:
-#                 tour_detail = fetch_tour(tour_detail_link, tour_id)
-#                 tour = OldTour(
-#                     tour_code=tour_id,
-#                     thumbnail=tour_thumbnail,
-#                     title=tour_title,
-#                     departure=tour_departure,
-#                     duration=tour_staytime,
-#                     vehicle=tour_vehicle,
-#                     calendar=tour_calendar,
-#                     priceValue=tour_price_value,
-#                     price=tour_price_text,
-#                     detail_url=tour_detail_link,
-#                     tag=tour_tag,
-#                     tour_detail=tour_detail
-#                 )
-#                 tours.append(tour)
-#                 print(f"Tour {tour_id} added.")
-#             except Exception as e:
-#                 print(f"Fetch Tour Error: {e}")
-#         except Exception as e:
-#             print(f"Error extracting a tour: {e}")
-#     return tours
-
 non_digit_re = re.compile(r'\D')
 
 def get_tours_from_html(html: str):
@@ -385,6 +266,7 @@ def get_tours_from_html(html: str):
             print(f"Fetch Tour Error: {e}")
             return None
 
+    # tour_infos = [extract_basic_tour_info(div) for div in tqdm(tour_list[0:10], desc="Extracting tour basic info", unit="") if div]
     tour_infos = [extract_basic_tour_info(div) for div in tqdm(tour_list, desc="Extracting tour basic info", unit="") if div]
     tour_infos = [info for info in tour_infos if info]
 
@@ -393,6 +275,11 @@ def get_tours_from_html(html: str):
 
         for future in tqdm(as_completed(futures), total=len(futures), desc="Extracting tour detailed info", unit=""):
             try:
+                if os.name == 'nt': # For Windows
+                    os.system('cls')
+                else: # For macOS and Linux (posix)
+                    os.system('clear')
+
                 result = future.result()
                 tours.append(result)
             except Exception as e:
@@ -418,8 +305,8 @@ def fetch_tours(url: str, data_name: str):
         driver.close()
 
         data = get_tours_from_html(raw_data)
-        cache.set(data_name, data, expire=3600)
+        cache.set(data_name, data, expire=36000)
         return data
     except Exception as e:
         print(e)
-        return ""
+        return []
