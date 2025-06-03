@@ -72,75 +72,89 @@ def update_tours(data: List[OldTour], many=False):
             tour_collection.distinct(
                 "tour_code", {"tour_code": {"$in": [t.tour_code for t in tours]}})
         )
+
+        # Prepare bulk operations for tour instances
+        instance_ops = []
+        existing_instance_ids = set(
+            tour_instance_collection.distinct(
+                "instanceId", {"instanceId": {"$in": [t.instanceId for t in tour_instances]}})
+        )
+
         print("Tour prepare...")
 
         def create_tour_ops(tour: Tour):
-            if tour.tour_code in existing_tour_codes:
-                is_tour_updated = True
-                # Merge instances into existing document
-                tour_ops.append(UpdateOne(
-                    {"tour_code": tour.tour_code},
-                    {
-                        # Update everything except `instances`
-                        "$set": tour.dict(exclude={"instances"}),
-                        "$addToSet": {
-                            # Append new without duplication
-                            "instances": {"$each": tour.instances}
-                        }
-                    }
-                ))
-            else:
-                is_tour_added = True
-                # tour_ops.append(UpdateOne(
-                #     {"tour_code": tour.tour_code},
-                #     {"$set": tour.dict()}
-                # ))
-                tour_ops.append(  # ---
-                    UpdateOne(  # -----
+            nonlocal is_tour_added, is_tour_updated
+            try:
+                if tour.tour_code in existing_tour_codes:
+                    is_tour_updated = True
+                    # Merge instances into existing document
+                    tour_ops.append(UpdateOne(
                         {"tour_code": tour.tour_code},
-                        {"$set": tour.dict()},
-                        upsert=True
-                    )  # -----
-                )
+                        {
+                            # Update everything except `instances`
+                            "$set": tour.dict(exclude={"instances"}),
+                            "$addToSet": {
+                                # Append new without duplication
+                                "instances": {"$each": tour.instances}
+                            }
+                        }
+                    ))
+                else:
+                    is_tour_added = True
+                    # tour_ops.append(UpdateOne(
+                    #     {"tour_code": tour.tour_code},
+                    #     {"$set": tour.dict()}
+                    # ))
+                    tour_ops.append(  # ---
+                        UpdateOne(  # -----
+                            {"tour_code": tour.tour_code},
+                            {"$set": tour.dict()},
+                            upsert=True
+                        )  # -----
+                    )
+                return True
+            except Exception as e:
+                return False
 
         def create_instance_ops(instance: TourInstance):
-            if instance.instanceId not in existing_instance_ids:
-                instance_ops.append(UpdateOne(
-                    {"tourId": instance.tourId, "instanceId": instance.instanceId},
-                    {"$set": instance.dict()},
-                    upsert=True
-                ))
+            try:
+                if instance.instanceId not in existing_instance_ids:
+                    instance_ops.append(UpdateOne(
+                        {"tourId": instance.tourId,
+                            "instanceId": instance.instanceId},
+                        {"$set": instance.dict()},
+                        upsert=True
+                    ))
+                return True
+            except Exception as e:
+                return False
+
         check_tour = [create_tour_ops(tour) for tour in tqdm(
             tours, desc="Tours prepare", unit="") if tour]
 
         if check_tour:
-            # Prepare bulk operations for tour instances
-            existing_instance_ids = set(
-                tour_instance_collection.distinct(
-                    "instanceId", {"instanceId": {"$in": [t.instanceId for t in tour_instances]}})
-            )
-            instance_ops = []
+            print(f"Tour_ops: {len(tour_ops)}")
+            if tour_ops:
+                message = "Do nothing"
+                if is_tour_added == True:
+                    message = "Added new tours"
+                    if is_tour_updated == True:
+                        message = "Added new tours && Merging tour instances"
+                else:
+                    if is_tour_updated == True:
+                        message = "Merging tour instances"
+
+                if message != "Do nothing":
+                    bulk_write_in_chunks(
+                        tour_collection, tour_ops, BATCH_SIZE, message)
+                else:
+                    print("Aren't have any tours to updated")
+
             check_instance = [create_instance_ops(instance) for instance in tqdm(
                 tour_instances, desc="Instances prepare", unit="") if instance]
             if check_instance:
-                if tour_ops:
-                    message = "Do nothing"
-                    if is_tour_added == True:
-                        message = "Added new tours"
-                        if is_tour_updated == True:
-                            message = "Added new tours && Merging tour instances"
-                    else:
-                        if is_tour_updated == True:
-                            message = "Merging tour instances"
-
-                    if message != "Do nothing":
-                        bulk_write_in_chunks(
-                            tour_collection, tour_ops, BATCH_SIZE, message)
-                    else:
-                        print("Aren't have any tours to updated")
-
                 if instance_ops:
-                    print(instance_ops)
+                    print(f"Instance_ops: {len(instance_ops)}")
                     bulk_write_in_chunks(
                         tour_instance_collection, instance_ops, BATCH_SIZE, "Updating instances")
                 else:
@@ -150,66 +164,6 @@ def update_tours(data: List[OldTour], many=False):
                 return False
         else:
             return False
-
-        # for tour in tours:
-        #     if tour.tour_code in existing_tour_codes:
-        #         is_tour_updated = True
-        #         # Merge instances into existing document
-        #         tour_ops.append(UpdateOne(
-        #             {"tour_code": tour.tour_code},
-        #             {
-        #                 # Update everything except `instances`
-        #                 "$set": tour.dict(exclude={"instances"}),
-        #                 "$addToSet": {
-        #                     # Append new without duplication
-        #                     "instances": {"$each": tour.instances}
-        #                 }
-        #             }
-        #         ))
-        #     else:
-        #         is_tour_added = True
-        #         # tour_ops.append(UpdateOne(
-        #         #     {"tour_code": tour.tour_code},
-        #         #     {"$set": tour.dict()}
-        #         # ))
-        #         tour_ops.append( ## ---
-        #             UpdateOne( ## -----
-        #                 {"tour_code": tour.tour_code},
-        #                 {"$set": tour.dict()},
-        #                 upsert=True
-        #             ) ## -----
-        #         )
-
-        # # Prepare bulk operations for tour instances
-        # existing_instance_ids = set(
-        #     tour_collection.distinct(
-        #         "instanceId", {"instanceId": {"$in": [t.instanceId for t in tour_instances]}})
-        # )
-        # instance_ops = []
-        # for instance in tour_instances:
-        #     if instance.instanceId not in existing_instance_ids:
-        #         instance_ops.append(UpdateOne(
-        #             {"tourId": instance.tourId, "instanceId": instance.instanceId},
-        #             {"$set": instance.dict()},
-        #             upsert=True
-        #         ))
-
-        # if tour_ops:
-        #     message = "Do nothing"
-        #     if is_tour_added == True:
-        #         message = "Added new tours"
-        #         if is_tour_updated == True:
-        #             message = "Added new tours && Merging tour instances"
-        #     else:
-        #         if is_tour_updated == True:
-        #             message = "Merging tour instances"
-
-        #     bulk_write_in_chunks(
-        #         tour_collection, tour_ops, BATCH_SIZE, message)
-
-        # if instance_ops:
-        #     bulk_write_in_chunks(
-        #         tour_instance_collection, instance_ops, BATCH_SIZE, "Updating instances")
         return True
     except Exception as e:
         print(e)
@@ -336,6 +290,7 @@ def check_distinct_tour_id_in_instances():
     print(f"Total tours in 'tour_instances': {len(existing_tourId)}")
     return existing_tourId
 
+
 def check_distinct_tour_id_in_tours():
     # Adjust if using MongoDB Atlas
     client = MongoClient(MONGO_URI)
@@ -345,9 +300,32 @@ def check_distinct_tour_id_in_tours():
     print(f"Total tours in 'tours': {len(existing_tour_code)}")
     return existing_tour_code
 
-def find_missing_tours():
+
+def validate_instance_tours():
     a = check_distinct_tour_id_in_instances()
     b = check_distinct_tour_id_in_tours()
-    missing_tours = [item for item in a  if item not in b]
+    missing_tours = [item for item in a if item not in b]
     print(missing_tours)
-    return missing_tours
+
+    # Remove missing tour in instance
+    if missing_tours:
+        client = MongoClient(MONGO_URI)
+        db = client[DB_NAME]
+        tour_instance_collection = db[TOUR_INSTANCES_TABLE]
+        result = tour_instance_collection.delete_many(
+            {"tourId": {"$in": missing_tours}})
+        print(f"Deleted {result.deleted_count} documents from 'instances'")
+    else:
+        print("No missing tours to delete.")
+
+
+def update_instances_status(): # Updated instances without STATUS
+    client = MongoClient(MONGO_URI)
+    db = client[DB_NAME]
+    tour_instance_collection = db[TOUR_INSTANCES_TABLE]
+    result = tour_instance_collection.update_many(
+        {"status": {"$exists": False}},  # Only instances without 'status'
+        {"$set": {"status": "PENDING"}}
+    )
+    print(
+        f"Updated {result.modified_count} tour instances with status='PENDING'")

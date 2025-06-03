@@ -1,7 +1,10 @@
+from datetime import datetime
+import time
+import pycron
 from fastapi import FastAPI
 import diskcache
 from crawler.Crawler import fetch_tours
-from mongodb.MongoManager import check_distinct_tour_id_in_instances, check_distinct_tour_id_in_tours, find_missing_tours, update_tours
+from mongodb.MongoManager import check_distinct_tour_id_in_instances, check_distinct_tour_id_in_tours, update_instances_status, validate_instance_tours, update_tours
 app = FastAPI()
 cache = diskcache.Cache("cache")  # lưu vào thư mục cache/
 cache_map = [  # Check
@@ -68,13 +71,21 @@ def crawl_tours():
         print(e)
         return {"message": "Check backend 'cache_map'"}
 
-# update_old_tours()
-# crawl_tours()
-# def count_tours_in_tours():
-#     check_distinct_tour_id_in_tours()
-# def count_tours_in_instances():
-#     check_distinct_tour_id_in_instances()
-def get_missing_tours():
-    find_missing_tours()
+cron_expression = "0 0 * * *" # Every day at 00:00
+already_ran_today = False
 
-find_missing_tours()
+while True:
+    now = datetime.now()
+
+    if pycron.is_now(cron_expression) and not already_ran_today:
+        crawl_tours()
+        validate_instance_tours()
+        update_instances_status()
+        already_ran_today = True
+        time.sleep(60)  # Wait to avoid double execution in the same minute
+
+    # Reset the flag after midnight passes
+    if now.hour != 0:
+        already_ran_today = False
+
+    time.sleep(10)  # Check every 10 seconds

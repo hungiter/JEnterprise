@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import List, Optional
 
+
 class ScheduleInfo(BaseModel):
     index: int = -1
     date_label: str = ""
@@ -42,7 +43,8 @@ class TourInstance(BaseModel):
     guiderIds: List[str] = []
     startDate: str
     totalSlot: int = 36
-    remainingSlot:int = 36
+    remainingSlot: int = 36
+    status: str = "PENDING"
 
 
 class Tour(BaseModel):
