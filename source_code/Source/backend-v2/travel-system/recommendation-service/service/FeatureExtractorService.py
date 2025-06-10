@@ -1,4 +1,5 @@
 import re
+import sys
 import time
 import json
 from bs4 import BeautifulSoup
@@ -6,7 +7,8 @@ from typing import List
 
 from pymongo import UpdateOne
 from pymongo.errors import PyMongoError
-from index import cache, cache_duration, mongo_client, print_new_message, clear_message, force_extract_feature
+from tqdm import tqdm
+from index import verbose, cache, cache_duration, mongo_client, print_new_message, clear_message, force_extract_feature
 from bson.json_util import dumps
 from fastapi.responses import JSONResponse
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -57,7 +59,7 @@ def dict_to_tour_feature_model(item):
     return None  # hoặc raise tùy logic bạn muốn
 
 
-def initialize_heritage_cache():
+def initialize_features_cache():
     try:
         db = mongo_client[DB_NAME]
         collection = db[TOURS_FEATURES_TABLE]
@@ -66,9 +68,11 @@ def initialize_heritage_cache():
         data = []
         chunk_size = 5000
 
-        print_new_message("Dictionary cache initialize...\n")
+        total_docs = collection.count_documents({})
+        progress_bar = tqdm(
+            total=total_docs, desc="Initializing Dictionary Features Cache", file=sys.stdout)
+
         while True:
-            print_new_message("Continue initialize...\n")
             query = {"_id": {"$gt": last_id}} if last_id else {}
             cursor = collection.find(query).sort("_id").batch_size(1000)
 
@@ -89,10 +93,13 @@ def initialize_heritage_cache():
             data.extend(new_data)
 
             last_id = chunk[-1]["_id"]  # save last processed ID
+            progress_bar.update(len(chunk))  # update progress bar
 
             # Update cache every chunk (optional)
             if data:
                 cache.set(tour_features_cache, data, expire=cache_duration)
+
+        progress_bar.close()
 
     except Exception as e:
         print_new_message(f"Initialize Heritage Cache Error\n{e}")
@@ -313,6 +320,10 @@ def analyze_process():
                     try:
                         words_extract_result = tag_extractor(trip_plan)
                         words = words_extract_result["result"]
+
+                        # Title parts
+                        title_parts = re.split(r'[,:-]', tour_title)
+                        words = words + [p.strip() for p in title_parts]
                     except:
                         pass
                     # VNCORENLP WORDS EXTRACTOR ============================END
@@ -332,13 +343,17 @@ def analyze_process():
             with ThreadPoolExecutor(max_workers=10) as executor:
                 futures = [executor.submit(process_tour, i, dict_to_tour_model(tour))
                            for i, tour in enumerate(tours)]
-                for future in as_completed(futures):
-                    result = future.result()
-                    if result:
-                        curr = curr + 1
-                        progress = curr/total
-                        message = f"{progress}% - {result}"
-                        extract_features_status["message"] = message
+                if verbose:
+                    for future in as_completed(futures):
+                        result = future.result()
+                        if result:
+                            curr = curr + 1
+                            progress = round((curr / total) * 100, 2)
+                            message = f"{progress}% - {result}"
+                            extract_features_status["message"] = message
+                else:
+                    for future in tqdm(as_completed(futures), total=len(futures), desc="Feature Extracting", file=sys.stdout):
+                        result = future.result()
 
             # Ghi cache sau khi hoàn tất
             if tour_features:
@@ -383,6 +398,7 @@ def analyze_tour_features(step_name: str, step_alias: str):
                             message = f"{json.dumps(payload, default=str)}"
                             print_new_message(
                                 f"analyze_tour_features.future_result: {message}")
+                            save_features_from_cache()
                         else:
                             payload = {"step": step_name, "step_alias": step_alias, "data": {
                                 "status": "error", "source": "live", "message": "No data found"}}

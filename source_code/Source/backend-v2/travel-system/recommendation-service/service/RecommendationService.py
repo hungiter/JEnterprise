@@ -118,6 +118,13 @@ def get_top_n_similar_tours(tour_code: str, n: int = 3):
         return JSONResponse(content=json.loads(dumps({"status": "error", "error": f"{e}"})))
 
 
+def tour_recommendation(tourId: str, userId: str):
+    ## GET FAVORITE ONES
+    similar_tour = get_top_n_similar_tours(tourId)
+
+    return "HAHA"
+
+
 def get_similar_matrix():
     if not similarity_matrix:
         return JSONResponse(content=json.loads(json.dumps({"status": "error", "message": "Similarity Matrix not created"})))

@@ -1,8 +1,10 @@
 import os
+from typing import Collection
 import diskcache
 from pymongo import MongoClient
 from urllib.parse import quote_plus
 from SPARQLWrapper import SPARQLWrapper
+from tqdm import tqdm
 
 
 # Cấu hình MongoDB
@@ -20,6 +22,7 @@ force_initialize_heritage = False
 force_create_location_word_dict = False
 force_update_cache_to_db = False
 force_extract_feature = False
+verbose=False
 
 clear_cache = False
 if clear_cache == True:
@@ -44,3 +47,23 @@ def print_new_message(message: str):
 def clear_message():
     global last_message
     last_message = ""
+
+def bulk_write_in_chunks(collection: Collection, operations, batch_size, desc):
+    for i in tqdm(range(0, len(operations), batch_size), desc=desc):
+        try:
+            batch = operations[i:i + batch_size]
+            # print(f"\n\nBATCH\n{batch}\n")
+            collection.bulk_write(batch, ordered=False)
+        except Exception as e:
+            print(e)
+
+def bulk_write_all(collection: Collection, operations, batch_size):
+    for i in range(0, len(operations), batch_size):
+        while True:
+            try:
+                batch = operations[i:i + batch_size]
+                # print(f"\n\nBATCH\n{batch}\n")
+                collection.bulk_write(batch, ordered=False)
+                break
+            except Exception as e:
+                print(e)
