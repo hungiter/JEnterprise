@@ -4,7 +4,7 @@ import Header from "../components/Header";
 export default function AuthLayout() {
   return (
     <div className="bg-white-100 min-h-screen">
-      <Header />
+      <Header onLoginClick={() => setShowLogin(true)}/>
       <div className="container mx-auto py-6 px-4">
         <Outlet /> {/* Đây là nơi render các trang con */}
       </div>

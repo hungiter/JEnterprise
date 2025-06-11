@@ -10,6 +10,7 @@ export default defineConfig({
   },
   server: {
     host: true,
+    port: 15113,
     allowedHosts: [
       'pure-calf-lively.ngrok-free.app' // Add 5173 to ngrok first -> add url to here
     ]
@@ -19,3 +20,4 @@ export default defineConfig({
 // TOKEN 2xA8jVNwDNatIguFQoduaDn3T2F_2gVutwe58ELAtegEZWRkR
 // npm dev run -> NetworkIP
 // docker run -it -e NGROK_AUTHTOKEN=2xA8jVNwDNatIguFQoduaDn3T2F_2gVutwe58ELAtegEZWRkR ngrok/ngrok http NetworkIP --url=pure-calf-lively.ngrok-free.app
+// docker run -it -e NGROK_AUTHTOKEN=2xA8jVNwDNatIguFQoduaDn3T2F_2gVutwe58ELAtegEZWRkR ngrok/ngrok http http://172.30.240.1:15113/ --url=pure-calf-lively.ngrok-free.app
