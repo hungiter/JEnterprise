@@ -226,10 +226,14 @@ def tour_to_new_tour(old_tours: List[OldTour]):
     tour_instances: List[TourInstance] = []
 
     def processed(tour: OldTour):
+        nonlocal new_tours
         tour_id = tour.tour_code
         tour_instance_ids: List[str] = []
 
+        print(tour)
+
         def instances_processed(date_str: str):
+            nonlocal tour_instances
             formatted_date = date_str.replace("-", "")  # yyyyMMdd
             instance_id = f"{tour_id}_{formatted_date}"
             tour_instance = TourInstance(
@@ -239,7 +243,6 @@ def tour_to_new_tour(old_tours: List[OldTour]):
             )
             tour_instances.append(tour_instance)
             tour_instance_ids.append(instance_id)
-            return True
         check_instances = [instances_processed(date_str) for date_str in tqdm(
             tour.calendar, desc=f"{tour_id}'s instances processing", unit="") if date_str]
 
@@ -259,9 +262,6 @@ def tour_to_new_tour(old_tours: List[OldTour]):
                 instances=tour_instance_ids
             )
             new_tours.append(new_tour)
-            return True
-        else:
-            return False
     check_tours = [processed(tour) for tour in tqdm(
         old_tours, desc="Tours processing", unit="") if tour]
     if check_tours:
@@ -305,7 +305,6 @@ def validate_instance_tours():
     a = check_distinct_tour_id_in_instances()
     b = check_distinct_tour_id_in_tours()
     missing_tours = [item for item in a if item not in b]
-    print(missing_tours)
 
     # Remove missing tour in instance
     if missing_tours:
@@ -319,7 +318,7 @@ def validate_instance_tours():
         print("No missing tours to delete.")
 
 
-def update_instances_status(): # Updated instances without STATUS
+def update_instances_status():  # Updated instances without STATUS
     client = MongoClient(MONGO_URI)
     db = client[DB_NAME]
     tour_instance_collection = db[TOUR_INSTANCES_TABLE]

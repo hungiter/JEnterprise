@@ -14,7 +14,14 @@ public class CorsConfig {
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
                         .allowedOrigins("*") // React URL
-                        .allowedOrigins("http://localhost:5173","ultimately-flowing-stag.ngrok-free.app","pure-calf-lively.ngrok-free.app") // React URL
+                        .allowedOrigins(
+                                "http://localhost:5173", //
+                                "http://localhost:80", //
+                                "http://localhost:8080", //
+                                "http://localhost:8082", //
+                                "https://ultimately-flowing-stag.ngrok-free.app", //
+                                "https://pure-calf-lively.ngrok-free.app" //
+                        ) // React URL
                         .allowedMethods("*");
             }
         };

@@ -27,21 +27,7 @@ public class TourMicroserviceController {
 
     @GetMapping("/all")
     public ResponseEntity<String> getAllTours() {
-        HttpHeaders headers = appHeaders.getHeaders();
-
-        HttpEntity<String> entity = new HttpEntity<>(headers);
-        try {
-            String url = tourServiceUrl + "/api/tours";  // Sử dụng URL từ application.properties
-            return restTemplate.exchange(
-                    url,
-                    HttpMethod.GET,
-                    entity,
-                    String.class
-            );
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error: " + e.getMessage());
-        }
+        return forwardRequest(HttpMethod.GET, "");
     }
 
     @GetMapping("/{code}")

@@ -71,21 +71,25 @@ def crawl_tours():
         print(e)
         return {"message": "Check backend 'cache_map'"}
 
-cron_expression = "0 0 * * *" # Every day at 00:00
-already_ran_today = False
+crawl_tours()
+validate_instance_tours()
+update_instances_status()
 
-while True:
-    now = datetime.now()
+# cron_expression = "0 0 * * *" # Every day at 00:00
+# already_ran_today = False
 
-    if pycron.is_now(cron_expression) and not already_ran_today:
-        crawl_tours()
-        validate_instance_tours()
-        update_instances_status()
-        already_ran_today = True
-        time.sleep(60)  # Wait to avoid double execution in the same minute
+# while True:
+#     now = datetime.now()
 
-    # Reset the flag after midnight passes
-    if now.hour != 0:
-        already_ran_today = False
+#     if pycron.is_now(cron_expression) and not already_ran_today:
+#         crawl_tours()
+#         validate_instance_tours()
+#         update_instances_status()
+#         already_ran_today = True
+#         time.sleep(60)  # Wait to avoid double execution in the same minute
 
-    time.sleep(10)  # Check every 10 seconds
+#     # Reset the flag after midnight passes
+#     if now.hour != 0:
+#         already_ran_today = False
+
+#     time.sleep(10)  # Check every 10 seconds

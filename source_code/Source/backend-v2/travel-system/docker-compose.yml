@@ -85,7 +85,7 @@ services:
       - guide-service
     networks:
       - app-network
-    command: ["java", "-jar", "/app.jar", "--server.port=8080", "--server.address=0.0.0.0"]
+    command: [ "java", "-jar", "/app.jar", "--server.port=8080", "--server.address=0.0.0.0" ]
 
   user-service:
     build:
@@ -95,7 +95,7 @@ services:
       - "8081:8081"
     networks:
       - app-network
-    command: ["java", "-jar", "/app.jar", "--server.port=8081", "--server.address=0.0.0.0"]
+    command: [ "java", "-jar", "/app.jar", "--server.port=8081", "--server.address=0.0.0.0" ]
 
   tour-service:
     build:
@@ -105,7 +105,7 @@ services:
       - "8082:8082"
     networks:
       - app-network
-    command: ["java", "-jar", "/app.jar", "--server.port=8082", "--server.address=0.0.0.0"]
+    command: [ "java", "-jar", "/app.jar", "--server.port=8082", "--server.address=0.0.0.0" ]
 
   guide-service:
     build:
@@ -115,7 +115,7 @@ services:
       - "8083:8083"
     networks:
       - app-network
-    command: ["java", "-jar", "/app.jar", "--server.port=8083", "--server.address=0.0.0.0"]
+    command: [ "java", "-jar", "/app.jar", "--server.port=8083", "--server.address=0.0.0.0" ]
 
   recommendation-service:
     build:
@@ -125,7 +125,7 @@ services:
       - "5000:5000"  # Local access for testing, optional
     networks:
       - app-network
-    command: ["uvicorn", "main:app", "--host=0.0.0.0", "--port=5000"]
+    command: [ "uvicorn", "main:app", "--host=0.0.0.0", "--port=5000" ]
 
   ngrok:
     image: ngrok/ngrok:latest
@@ -141,4 +141,3 @@ services:
 networks:
   app-network:
     driver: bridge
-

@@ -29,8 +29,8 @@ public class Tour {
     private String duration;
     @Field("vehicle")
     private String vehicle;
-    @Field("calendar")
-    private List<String> calendar;
+    @Field("instances")
+    private List<String> instances;
     @Field("price")
     private String price;
     @Field("priceValue")

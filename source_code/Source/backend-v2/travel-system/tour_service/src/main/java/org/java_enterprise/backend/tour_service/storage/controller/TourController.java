@@ -1,5 +1,8 @@
 package org.java_enterprise.backend.tour_service.storage.controller;
 
+import org.java_enterprise.backend.tour_service.storage.dto.TourDTO;
+import org.java_enterprise.backend.tour_service.storage.dto.TourInstanceDTO;
+import org.java_enterprise.backend.tour_service.storage.dto.TourInstanceSummaryDTO;
 import org.java_enterprise.backend.tour_service.storage.dto.TourSummaryDTO;
 import org.java_enterprise.backend.tour_service.storage.model.SummaryToursRequest;
 import org.java_enterprise.backend.tour_service.storage.model.Tour;
@@ -7,7 +10,9 @@ import org.java_enterprise.backend.tour_service.storage.service.TourService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/tours")
@@ -23,11 +28,11 @@ public class TourController {
     }
 
     @GetMapping("/{code}")
-    public Tour getTour(@PathVariable("code") String code) {
+    public TourDTO getTour(@PathVariable("code") String code) {
         return tourService.getTourByCode(code);
     }
 
-    @GetMapping
+    @GetMapping("/")
     public List<Tour> getAllTours() {
         List<Tour> result = tourService.getAllTours();
         System.out.println("Currently have " + result.size() + " tours");
@@ -36,11 +41,30 @@ public class TourController {
 
     @GetMapping("/summary")
     public List<TourSummaryDTO> getAllTourSummaries() {
-        return tourService.getAllTourSummaries();
+        try {
+            List<TourSummaryDTO> result = tourService.getAllTourSummaries();
+            System.out.println("TourSummary: " + result);
+            return result;
+        } catch (Exception e) {
+            System.out.println("Error get data" + e);
+            return Collections.emptyList();
+        }
     }
 
     @PostMapping("/summary_tours")
     public List<TourSummaryDTO> getSummaryTours(@RequestBody SummaryToursRequest request) {
         return tourService.getTourSummeries(request.getTour_codes());
+    }
+
+
+    // TEST INSTANCE ================================
+    @GetMapping("/instances/all/{tourCode}")
+    public List<TourInstanceSummaryDTO> getTourInstanceSummaries(@PathVariable("tourCode") String tourCode) {
+        return tourService.getTourInstanceSummaries(tourCode);
+    }
+
+    @GetMapping("/instances/info/{instanceId}")
+    public Optional<TourInstanceDTO> getTourInstanceInfo(@PathVariable("instanceId") String instanceId) {
+        return tourService.getInstanceInfo(instanceId);
     }
 }
