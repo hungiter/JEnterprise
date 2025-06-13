@@ -21,11 +21,10 @@ build/
 .pytest_cache/
 
 # Cache files
-.val
-.val.*
-.db
-.db.*
-.db-*
+**/*.val*
+**/*.db*
+**/*.val*
+**/*.db*
 
 
 # PyBuilder
