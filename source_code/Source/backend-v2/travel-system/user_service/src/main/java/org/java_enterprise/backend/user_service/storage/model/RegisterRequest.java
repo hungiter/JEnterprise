@@ -21,4 +21,5 @@ public class RegisterRequest {
     @Size(min = 8, max = 32, message = "Mật khẩu cần có độ dài từ 8-32 kí tự")
     @Pattern(regexp = "^[a-z0-9]+$", message = "Mật khẩu chỉ được chứa chữ thường và số (a-z, 0-9)")
     private String password;
+    private String role;
 }

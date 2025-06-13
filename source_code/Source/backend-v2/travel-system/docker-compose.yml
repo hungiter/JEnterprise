@@ -79,6 +79,8 @@ services:
     container_name: api-gateway
     ports:
       - "8080:8080"
+    volumes:
+      - h2data:/data/h2db
     depends_on:
       - tour-service
       - user-service
@@ -117,10 +119,22 @@ services:
       - app-network
     command: [ "java", "-jar", "/app.jar", "--server.port=8083", "--server.address=0.0.0.0" ]
 
+  vnpay-service:
+    build:
+      context: ./vnpay_service
+    container_name: vnpay-service
+    ports:
+      - "8088:8088"
+    networks:
+      - app-network
+    command: [ "java", "-jar", "/app.jar", "--server.port=8088", "--server.address=0.0.0.0" ]
+
   recommendation-service:
     build:
       context: ./recommendation-service
     container_name: recommendation-service
+    volumes:
+      - rec_cache:/app/cache
     ports:
       - "5000:5000"  # Local access for testing, optional
     networks:
@@ -141,3 +155,7 @@ services:
 networks:
   app-network:
     driver: bridge
+
+volumes:
+  h2data:
+  rec_cache:

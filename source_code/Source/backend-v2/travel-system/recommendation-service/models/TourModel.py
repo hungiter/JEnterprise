@@ -21,6 +21,8 @@ class TourDetail(BaseModel):
     trip_plan: List[ScheduleInfo] = []
 
 # NEW TOUR FORMAT
+
+
 class TourInstance(BaseModel):
     instanceId: str
     tourId: str
@@ -44,6 +46,7 @@ class Tour(BaseModel):
     detail_url: str
     tag: str = ""
     tour_detail: TourDetail
+
 
 class TourFeature(BaseModel):
     tour_code: str
@@ -74,6 +77,15 @@ class TourFeature(BaseModel):
         if not self.words:
             return "No words available"
         return " ".join(self.words)
+
+    def to_dict(self):
+        return {
+            "tour_code": self.tour_code,
+            "locations": self.locations,
+            "activities": self.activities,
+            "words": self.words,
+        }
+
 
 class RecommendTourRequest(BaseModel):
     tour_id: str

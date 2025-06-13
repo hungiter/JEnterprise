@@ -242,8 +242,12 @@ def create_nlp_model():
     if len(punctuations) == 0 or raw_df == None:
         punctuations = set(string.punctuation)
 
-        if cache_name in cache:
-            unique_tags = cache[cache_name]
+        # # DISKCACHE
+        # if cache_name in cache:
+        #   unique_tags = cache[cache_name]
+        # CacheManager
+        if cache.has(cache_name):
+            unique_tags = cache.get(cache_name)
         else:
             unique_tags = set([])
 
@@ -256,7 +260,10 @@ def create_nlp_model():
                 unique_tags = set(
                     tag for tags_list in raw_df['Tags'] for tag in tags_list)
                 save_mongo_tags(unique_tags)
-            cache.set(cache_name, unique_tags, 604800)  # 7 days updated
+            # # DISKCACHE
+            # cache.set(cache_name, unique_tags, 604800)  # 7 days updated
+            # CacheManager
+            cache.set(cache_name, unique_tags)
     processe_data_state["step"] = ""
     processe_data_state["message"] = ""
     return True

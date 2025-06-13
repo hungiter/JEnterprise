@@ -16,8 +16,7 @@ import org.springframework.security.web.firewall.StrictHttpFirewall;
 @EnableWebSecurity
 public class SecurityConfig {
     private static final String[] PUBLIC_ENDPOINTS = {
-            "/api/users/**",
-            "/api/auth/**"
+            "/api/pay/**",
     };
 
     @Bean
@@ -43,6 +42,7 @@ public class SecurityConfig {
     public WebSecurityCustomizer webSecurityCustomizer(HttpFirewall firewall) {
         return (web) -> web.httpFirewall(firewall);
     }
+
     @Bean
     public HttpFirewall allowUrlEncodedSlashHttpFirewall() {
         StrictHttpFirewall firewall = new StrictHttpFirewall();

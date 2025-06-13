@@ -5,6 +5,7 @@ import org.java_enterprise.backend.tour_service.storage.dto.TourInstanceDTO;
 import org.java_enterprise.backend.tour_service.storage.dto.TourInstanceSummaryDTO;
 import org.java_enterprise.backend.tour_service.storage.dto.TourSummaryDTO;
 import org.java_enterprise.backend.tour_service.storage.model.Tour;
+import org.java_enterprise.backend.tour_service.storage.repository.TourEngagementRepository;
 import org.java_enterprise.backend.tour_service.storage.repository.TourRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,8 @@ public class TourService {
     private TourRepository tourRepository;
     @Autowired
     private TourInstanceService tourInstanceService;
+    @Autowired
+    private TourEngagementRepository tourEngagementRepository;
 
     public void saveTours(List<Tour> tours) {
         tourRepository.saveAll(tours);

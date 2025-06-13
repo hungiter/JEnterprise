@@ -9,25 +9,27 @@ import json
 
 from fastapi.responses import JSONResponse
 
-from index import clear_terminal, cache, print_new_message
+from index import clear_terminal, cache, print_new_message, is_docker
 from models.TourModel import RecommendTourRequest
 from service.TourService import fetch_mongo_tours, get_cache_tour
 from service.DictionaryService import fetch_dictionary_create, get_cache_dictionary, get_cache_location_word
 from service.FeatureExtractorService import analyze_tour_features, get_cache_tour_features
-from service.RecommendationService import create_similarity_matrix, get_top_n_similar_tours, get_similar_matrix, tour_recommendation
+from service.RecommendationService import create_similarity_matrix, get_top_n_similar_tours, get_similar_matrix, \
+    tour_recommendation
 from py_vncorenlp.vncorenlp import create_nlp_model, processe_data_state
+
 # App API
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080", "ultimately-flowing-stag.ngrok-free.app",
-                   "pure-calf-lively.ngrok-free.app"],  # Change this to your frontend's URL in production
+    allow_origins=["http://localhost:8080", "ultimately-flowing-stag.ngrok-free.app", "https://ultimately-flowing-stag.ngrok-free.app"
+                   "pure-calf-lively.ngrok-free.app", "https://pure-calf-lively.ngrok-free.app"],
+    # Change this to your frontend's URL in production
     allow_methods=["*"],
     allow_headers=["*"],
 )
 is_ready = False
 clear_terminal()
-
 
 @app.get("/")
 def root():
@@ -72,7 +74,8 @@ def similarity_matrix():
 @app.on_event("startup")
 async def start_training():
     try:
-        asyncio.create_task(create_nlp_model())
+        if not is_docker:
+            asyncio.create_task(create_nlp_model())
         is_ready = True
     except:
         # Do nothing
@@ -84,8 +87,12 @@ def data_processed_auto():  # DAILY AUTO RUN
         step = ""
         step_alias = ""
         try:
-            while processe_data_state["step"] == "":
-                time.sleep(1)
+            if not is_docker:
+                while processe_data_state["step"] == "":
+                    time.sleep(1)
+            else:
+                global is_ready
+                is_ready = True
 
             step = "nlp_training"
             step_alias = "Model Training..."
@@ -119,6 +126,7 @@ def data_processed_auto():  # DAILY AUTO RUN
             print("Started Service success", flush=True)
         except Exception as e:
             print(f"Started Service failed: {e}", flush=True)
+
     data_processed()
     # tour = cache_tour()
     # tour_json = json.loads(tour.body.decode())
@@ -137,5 +145,6 @@ async def wait_for_ready(request, call_next):
     if not is_ready:
         return JSONResponse(content={"message": "Service not ready"}, status_code=503)
     return await call_next(request)
+
 
 run_daily_background_task()

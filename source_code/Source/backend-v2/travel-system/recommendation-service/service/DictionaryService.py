@@ -48,8 +48,12 @@ def print_inline(text: str):
 def create_location_word_cache():
     try:
         print("⏳ Start create location cache", flush=True)
-        if heritage_cache in cache:
-            raw_data = cache[heritage_cache]
+        # # DISKCACHE
+        # if heritage_cache in cache:
+        #     raw_data = cache[heritage_cache]
+        # CacheManager
+        if cache.has(heritage_cache):
+            raw_data = cache.get(heritage_cache)
             if raw_data:
                 all_results = set()  # Sử dụng set để loại bỏ phần tử trùng lặp
                 heritages: List[Heritage] = [
@@ -71,8 +75,11 @@ def create_location_word_cache():
                     all_results.update(others)
 
                 # Chuyển đổi lại thành list và lưu vào cache
-                cache.set(location_word_cache, list(
-                    all_results), expire=cache_duration)
+                # # DISKCACHE
+                # cache.set(location_word_cache, list(
+                #     all_results), expire=cache_duration)
+                # CacheManager
+                cache.set(location_word_cache, list(all_results))
                 print("Heritage Cache created success", flush=True)
                 return
             print("⚠️ Heritage cache is empty", flush=True)
@@ -124,7 +131,10 @@ def initialize_heritage_cache():
             progress_bar.update(len(chunk))  # Cập nhật tiến độ
 
             if data:
-                cache.set(heritage_cache, data, expire=cache_duration)
+                # # DISKCACHE
+                # cache.set(heritage_cache, data, expire=cache_duration)
+                # CacheManager
+                cache.set(heritage_cache, data)
 
         progress_bar.close()
 
@@ -134,8 +144,10 @@ def initialize_heritage_cache():
 
 def extend_heritage_cache_life():
     try:
-        cache.set(heritage_cache,
-                  cache[heritage_cache], expire=cache_duration)
+        # # DISKCACHE
+        # cache.set(heritage_cache, cache[heritage_cache], expire=cache_duration)
+        # CacheManager
+        cache.set(heritage_cache, cache[heritage_cache])
     except:
         pass
 
@@ -176,7 +188,11 @@ def save_dictionary(data: List[Heritage]):
 
         if bulk_ops:
             # Save cache first for data fetcher
-            cache.set(heritage_cache, data, expire=cache_duration)
+            # # DISKCACHE
+            # cache.set(heritage_cache, data, expire=cache_duration)
+            # CacheManager
+            dict_data = [h.to_dict() for h in data]
+            cache.set(heritage_cache, dict_data)
             # Save data to Mongodb
             if verbose:
                 bulk_write_in_chunks(
@@ -200,9 +216,13 @@ def save_dictionary(data: List[Heritage]):
 def save_dictionary_from_cache():
     try:
         print("- Check Cache before save")
-        if heritage_cache in cache:
+        # # DISKCACHE
+        # if heritage_cache in cache:
+        #     data = cache[heritage_cache]
+        # CacheManager
+        if cache.has(heritage_cache):
+            data = cache.get(heritage_cache)
             print_inline("-- Start create list for save")
-            data = cache[heritage_cache]
             list_heritage = []
             if data:
                 for item in data:
@@ -471,19 +491,36 @@ def dictionary_creator():
         dictionary_create_status["loading"] = True
         dictionary_create_status["success"] = False
         # MONGO HISTORY ===============================================================
-        if heritage_cache not in cache or not cache[heritage_cache] or force_initialize_heritage == True:
-            dictionary_create_status["step"] = "mongodb_heritage_fetch"
-            dictionary_create_status["message"] = "Start Fetching..."
-            initialize_heritage_cache()
-        if location_word_cache not in cache or not cache[location_word_cache] or force_create_location_word_dict == True:
-            dictionary_create_status["step"] = "create_location_word_dict"
-            dictionary_create_status["message"] = "Start Creating..."
-            create_location_word_cache()
+        try:
+            # # DISKCACHE
+            # if heritage_cache not in cache or not cache[heritage_cache] or force_initialize_heritage == True:
+            # CacheManager
+            if not cache.has(heritage_cache) or not cache.get(heritage_cache) or force_initialize_heritage == True:
+                # if heritage_cache not in cache or force_initialize_heritage == True:
+                dictionary_create_status["step"] = "mongodb_heritage_fetch"
+                dictionary_create_status["message"] = "Start Fetching..."
+                initialize_heritage_cache()
+        except Exception as e:
+            print(f"⚠️ Initialize Cache failed: {e}", flush=True)
+        try:
+            # # DISKCACHE
+            # if location_word_cache not in cache or not cache[location_word_cache] or force_create_location_word_dict == True:
+            # CacheManager
+            if not cache.has(location_word_cache) or not cache.get(location_word_cache) or force_create_location_word_dict == True:
+                # if location_word_cache not in cache or force_create_location_word_dict == True:
+                dictionary_create_status["step"] = "create_location_word_dict"
+                dictionary_create_status["message"] = "Start Creating..."
+                create_location_word_cache()
+        except Exception as e:
+            print(f"⚠️ Creating Location words failed: {e}", flush=True)
 
         continuable = True
         if continuable == False:
             # FINISED STATE ==========================================================
-            if heritage_cache not in cache or not cache[heritage_cache] or force_update_cache_to_db == True:
+            # # DISKCACHE
+            # if heritage_cache not in cache or not cache[heritage_cache] or force_update_cache_to_db == True:
+            # CacheManager
+            if not cache.has(heritage_cache) or not cache.get(heritage_cache) or force_update_cache_to_db == True:
                 dictionary_create_status["step"] = "update_cache_mongo"
                 dictionary_create_status["message"] = "Start Updating..."
                 save_dictionary_from_cache()
@@ -491,10 +528,14 @@ def dictionary_creator():
             dictionary_create_status["success"] = True
             dictionary_create_status["step"] = "finished"
             dictionary_create_status["message"] = ""
-            if heritage_cache in cache:
-                return cache[heritage_cache]
-            else:
-                return
+            # # DISKCACHE
+            # if heritage_cache in cache:
+            # return cache[heritage_cache]
+            # CacheManager
+            if cache.has(heritage_cache):
+                return cache.get(heritage_cache)
+
+            return
 
         # MERGED DATA ===========================================================
         place_cache_file = "storage_places_main.pickle"
@@ -610,7 +651,10 @@ def fetch_dictionary_create(step_name: str, step_alias: str):
         while True:
             try:
                 # Step 2: Cache exist -> END
-                if heritage_cache in cache and dictionary_execute == False:
+                # # DISKCACHE
+                # if heritage_cache in cache and dictionary_execute == False:
+                # CacheManager
+                if cache.has(heritage_cache) and dictionary_execute == False:
                     print_new_message("Heritage cache existed.")
                     break  # Close stream after sending
 
@@ -653,8 +697,12 @@ def fetch_dictionary_create(step_name: str, step_alias: str):
 
 
 def get_cache_dictionary():
-    if heritage_cache in cache:
-        data = cache[heritage_cache]
+    # # DISKCACHE
+    # if heritage_cache in cache:
+    #     data = cache[heritage_cache]
+    # CacheManager
+    if cache.has(heritage_cache):
+        data = cache.get(heritage_cache)
         if not data:
             return JSONResponse(content=json.loads(dumps({"status": "error", "message":  "Cache empty"})))
         return JSONResponse(content=json.loads(dumps({"status": "success", "data": data})), media_type="application/json")
@@ -662,8 +710,12 @@ def get_cache_dictionary():
 
 
 def get_cache_location_word():
-    if location_word_cache in cache:
-        data = cache[location_word_cache]
+    # # DISKCACHE
+    # if location_word_cache in cache:
+    #     data = cache[location_word_cache]
+    # CacheManager
+    if cache.has(location_word_cache):
+        data = cache.get(location_word_cache)
         if not data:
             return JSONResponse(content=json.loads(dumps({"status": "error", "message":  "Cache empty"})))
         return JSONResponse(content=json.loads(dumps({"status": "success", "data": data})))

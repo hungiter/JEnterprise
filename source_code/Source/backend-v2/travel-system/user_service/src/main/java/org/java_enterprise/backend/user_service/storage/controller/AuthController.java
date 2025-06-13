@@ -55,7 +55,6 @@ public class AuthController {
             return ResponseEntity.ok().body(AuthResponse.builder()
                     .success(false)
                     .message("Validation failed")
-                    .data(null)
                     .error(authError)
                     .build());
         }
@@ -89,7 +88,6 @@ public class AuthController {
             return ResponseEntity.ok().body(AuthResponse.builder()
                     .success(false)
                     .message("Validation failed")
-                    .data(null)
                     .error(authError)
                     .build());
         }

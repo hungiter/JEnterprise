@@ -105,7 +105,10 @@ def get_tours():  # Test
 
         if not tours:
             return None
-        cache.set(tour_cache, tours, expire=cache_duration)
+        # # DISKCACHE
+        # cache.set(tour_cache, tours, expire=cache_duration)
+        # CacheManager
+        cache.set(tour_cache, tours)
         print_new_message(f"✅ Total tours: {len(tours)}")
         return tours
     except Exception as e:
@@ -118,7 +121,10 @@ def fetch_mongo_tours(step_name: str, step_alias: str):
         # Step 1: If not in cache → fetch from DB
         future = None
         mongo_execute = False
-        if tour_cache not in cache:
+        # # DISKCACHE
+        # if tour_cache not in cache:
+        # CacheManager
+        if not cache.has(tour_cache):
             print_new_message("⏳ Fetching from Mongo...\n")
             mongo_execute = True
             future = wait_mongo_tours_executors.submit(get_tours)
@@ -127,7 +133,10 @@ def fetch_mongo_tours(step_name: str, step_alias: str):
         while True:
             try:
                 # Step 2: If available, send to client
-                if tour_cache in cache and mongo_execute == False:
+                # # DISKCACHE
+                # if tour_cache in cache and mongo_execute == False:
+                # CacheManager
+                if cache.has(tour_cache) and mongo_execute == False:
                     payload = {"step": step_name,  "step_alias": step_alias, "data": {
                         "status": "success", "source": "cache"}}
                     message = f"{json.dumps(payload, default=str)}\n"
@@ -136,7 +145,10 @@ def fetch_mongo_tours(step_name: str, step_alias: str):
                 elif future and future.done():
                     result = future.result()
                     if result:
-                        cache.set(tour_cache, result, expire=36000)
+                        # # DISKCACHE
+                        # cache.set(tour_cache, result, expire=36000)
+                        # CacheManager
+                        cache.set(tour_cache, result)
                         payload = {"step": step_name, "step_alias": step_alias, "data": {
                             "status": "success", "source": "live"}}
                         message = f"{json.dumps(payload, default=str)}\n"
@@ -173,6 +185,13 @@ def fetch_mongo_tours(step_name: str, step_alias: str):
 
 
 def get_cache_tour():
-    if tour_cache in cache:
-        return JSONResponse(content=json.loads(dumps({"status": "success", "data": cache[tour_cache]})))
+    # # DISKCACHE
+    # if tour_cache in cache:
+    #     data = cache[tour_cache]
+    # CacheManager
+    if cache.has(tour_cache):
+        data = cache.get(tour_cache)
+        if not data:
+            return JSONResponse(content=json.loads(dumps({"status": "error", "message":  "Cache empty"})))
+        return JSONResponse(content=json.loads(dumps({"status": "success", "data": data})))
     return JSONResponse(content=json.loads(dumps({"status": "error", "message": "Not have tour in cache"})))

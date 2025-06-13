@@ -23,18 +23,9 @@ class RecommendResult(BaseModel):
     summary: List[str] = []
     is_similar: bool = False
 
-
-def model_train_process():
-    # Get tours_feature
-    tour_features = []
-    data = cache[tour_features_cache]
-    for item in data:
-        feature = dict_to_tour_feature_model(item)
-        if feature:
-            tour_features.append(feature)
-
-
 # Function to calculate Jaccard similarity between two sets
+
+
 def jaccard_similarity(set1: set, set2: set) -> float:
     intersection = len(set1 & set2)
     union = len(set1 | set2)
@@ -64,8 +55,12 @@ def create_similarity_matrix():
     global similarity_matrix
 
     tours = []
-    if tour_features_cache in cache:
-        data = cache[tour_features_cache]
+    # # DISKCACHE
+    # if tour_features_cache in cache:
+    #     data = cache[tour_features_cache]
+    # CacheManager
+    if cache.has(tour_features_cache):
+        data = cache.get(tour_features_cache)
         for item in data:
             tour = dict_to_tour_feature_model(item)
             if tour:
@@ -119,7 +114,7 @@ def get_top_n_similar_tours(tour_code: str, n: int = 3):
 
 
 def tour_recommendation(tourId: str, userId: str):
-    ## GET FAVORITE ONES
+    # GET FAVORITE ONES
     similar_tour = get_top_n_similar_tours(tourId)
 
     return "HAHA"

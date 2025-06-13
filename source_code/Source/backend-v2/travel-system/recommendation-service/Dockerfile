@@ -21,6 +21,7 @@ RUN apt-get update && \
 # Set JAVA_HOME
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
+ENV TERM=xterm
 
 # Set working directory
 WORKDIR /app
