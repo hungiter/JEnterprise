@@ -1,0 +1,63 @@
+# Java build files
+*.class
+*.jar
+*.war
+*.ear
+
+# Build output directories
+/target/
+/build/
+
+# Maven
+.mvn/
+
+# Gradle
+.gradle/
+build/
+!gradle-wrapper.jar
+gradle-app.setting
+
+# IDE settings
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+out/
+
+# Eclipse
+.project
+.classpath
+.settings/
+.factorypath
+
+# VS Code
+.vscode/
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Logs and temp
+*.log
+logs/
+*.tmp
+*.bak
+*.swp
+
+# Environment / secrets
+.env
+*.env
+*.keystore
+application-dev.yml
+application-dev.properties
+
+# Spring-specific
+# (optional) database files
+*.h2.db
+*.mv.db
+
+# Docker
+*.pid
+
+# Local runtime files
+*.db
