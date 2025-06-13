@@ -1,7 +1,7 @@
 // app/src/services/tour/TourService.ts
-import axios from 'axios'
 import type { TourSummary } from '@/src/dtos/tour.dto'
-import { API_TOUR_BASE } from '../api_info'
+import api, { API_TOUR_BASE } from '../api_info'
+import axios from 'axios';
 
 function isTourSummary(obj: any): obj is TourSummary {
     return typeof obj.tour_code === 'string'
@@ -14,6 +14,8 @@ export const fetchAllTourSummaries = async (): Promise<TourSummary[]> => {
             "ngrok-skip-browser-warning": "true"
         }
     });
+    // const res = await api.get(`tours/summary`);
+    console.log(res)
 
     const data = res.data;
 

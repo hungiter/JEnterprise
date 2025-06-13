@@ -10,12 +10,6 @@ export default [
     index("./src/pages/Home/HomePage.tsx"), // Root route ("/")
     // index("./src/pages/Tour/TourListPage.tsx"), // Root route ("/")
 
-    layout("./src/layout/authLayout.tsx", [
-        route("login", "./src/pages/Authenticate/LoginPage.tsx"),
-        route("logout", "./src/pages/Authenticate/LogoutPage.tsx"),
-        route("register", "./src/pages/Authenticate/RegisterPage.tsx"),
-    ]),
-
     layout("./src/layout/mainLayout.tsx", [
         // Tour Pages
         route("tours", "./src/pages/Tour/TourListPage.tsx"),

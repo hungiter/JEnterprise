@@ -6,6 +6,29 @@
 // export const API_AI_BASE = `http://localhost:80/api/ai`;
 // export const API_VN_PAY = `http://localhost:80/api/pay`;
 
-export const API_TOUR_BASE = `https://ultimately-flowing-stag.ngrok-free.app/api/tours`;
-export const API_AI_BASE = `https://ultimately-flowing-stag.ngrok-free.app/api/ai`;
-export const API_VN_PAY = `https://ultimately-flowing-stag.ngrok-free.app/api/pay`;
+import axios from "axios";
+import { getCookie } from "./cookies/Cookies";
+import { getUserInfoFromCookie } from "../context/LoginContext";
+const BASE_URL = "https://ultimately-flowing-stag.ngrok-free.app/api"
+export const API_USER_BASE = `${BASE_URL}/users`;
+export const API_AUTH_BASE = `${BASE_URL}/auth`;
+export const API_TOUR_BASE = `${BASE_URL}/tours`;
+export const API_AI_BASE = `${BASE_URL}/ai`;
+export const API_VN_PAY = `${BASE_URL}/pay`;
+
+const api = axios.create({
+    baseURL: BASE_URL,
+});
+
+// Add token to each request
+api.interceptors.request.use((config) => {
+    const userInfo = getUserInfoFromCookie();
+    if (userInfo) {
+        config.headers.Authorization = `Bearer ${userInfo.token}`;
+        config.headers["Content-Type"] = "application/json";
+        config.headers["ngrok-skip-browser-warning"] = "true";
+    }
+    return config;
+});
+
+export default api;

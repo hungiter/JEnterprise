@@ -1,1 +1,0 @@
-export const user = { "username": "thanhhaimap", "password": "$2a$10$3LLs3etynmyqmaWzaJOK9uiTUJpqkQGsc8TfhNR50vbQ7RAlcz/sG", "email": "hungmafia96@gmail.com", "role": "User" };

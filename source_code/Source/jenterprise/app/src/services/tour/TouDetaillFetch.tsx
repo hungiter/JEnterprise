@@ -1,7 +1,7 @@
 // app/src/services/tour/TourDetailFetch.ts
-import axios from 'axios'
 import type { Tour } from '@/src/dtos/tour.dto'
-import { API_TOUR_BASE } from '../api_info'
+import api, { API_TOUR_BASE } from '../api_info'
+import axios from 'axios';
 
 function isTour(obj: any): obj is Tour {
   return typeof obj.tourCode === 'string'
@@ -13,6 +13,8 @@ export const fetchTourByCode = async (tourCode: string): Promise<Tour> => {
       "ngrok-skip-browser-warning": "true"
     }
   });
+
+  // const res = await api.get<Tour>(`tours/${tourCode}`);
   const data = res.data;
 
   if (!isTour(data)) {

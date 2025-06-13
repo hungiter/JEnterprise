@@ -15,7 +15,10 @@ import { fetchSummaryTours } from "@/src/services/tour/SummaryToursFetch";
 import JourneyDetail from "./components/JourneyDetail";
 import SimilarTourCard from "./components/SimilarTourCard";
 import { createPaymentOrder } from "@/src/services/payment/CreateOrder";
-import { user } from "@/src/services/session"
+import Loading from "@/src/components/Loading";
+import { useLogin } from "@/src/context/LoginContext";
+import { clearCookie, getCookie } from "@/src/services/cookies/Cookies";
+import { useVnpay, createPaymentRequest } from "@/src/context/VnpayContext";
 
 export default function TourDetail() {
   const { tourCode } = useParams<{ tourCode: string }>();
@@ -31,9 +34,9 @@ export default function TourDetail() {
   const [similarLoading, setSimilarLoading] = useState<boolean>(true);
   const [similarContent, setSimilarContent] = useState<any>(null);
 
-  const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
-  const [paymentUrlError, setPaymentUrlError] = useState<string | null>(null);
-  const [paymentUrlLoading, setPaymentUrlLoading] = useState<boolean>(false);
+  const { setRequest } = useVnpay();
+
+  const { showLogin, setShowLogin } = useLogin();
   useEffect(() => {
     if (!tourCode) {
       setTourError('Tour code is missing.');
@@ -58,9 +61,8 @@ export default function TourDetail() {
         setRecommendResult(fetchedResult);
       } catch (error) {
         setSimilarError(`Failed to fetch similar tour codes:\n${error}`);
-        setSimilarLoading(false);
       } finally {
-        /* Do nothing */
+        setSimilarLoading(false);
       }
     };
 
@@ -89,9 +91,7 @@ export default function TourDetail() {
     let tmpContent;
     if (similarLoading) {
       tmpContent = (
-        <div className="animate-pulse h-4 w-full bg-gray-200 rounded">
-          {/* Loading... */}
-        </div>
+        <Loading />
       );
     } else if (similarError) {
       tmpContent = (
@@ -116,36 +116,36 @@ export default function TourDetail() {
 
   const getPaymentUrl = async () => {
     try {
-      if (!user) {
-        console.log("Chưa đăng nhập!!!")
+      let token = getCookie("accessToken");
+      if (token == null) {
+        setShowLogin(true)
         return
       }
+
       if (!tour) {
         console.log("Tour không tồn tại!!!")
         return
       }
 
-      setPaymentUrlLoading(true);
-      const fetchedResult = await createPaymentOrder(tour, user);
-      if (fetchedResult.success) {
-        setPaymentUrl(fetchedResult.url);
+      const paymentInfo = createPaymentRequest(tour);
+      if (paymentInfo != null) {
+        setRequest(paymentInfo)
       } else {
-        setPaymentUrlError(`Failed to fetch similar tours's info:\n${fetchedResult.message}`);
+        clearCookie("accessToken");
       }
     } catch (error) {
-      setPaymentUrlError(`Failed to fetch similar tours's info:\n${error}`);
-    } finally {
-      setPaymentUrlLoading(false);
+      console.log(`createPaymentRequest Failed ${error}`);
     }
   };
-  useEffect(() => {
-    if (paymentUrl) {
-      // window.open(paymentUrl, '_blank');
-      window.location.href = paymentUrl;
-    }
-  }, [paymentUrl])
+  // useEffect(() => {
+  //   if (paymentUrl) {
+  //     // window.open(paymentUrl, '_blank');
+  //     window.location.href = paymentUrl;
+  //   }
+  // }, [paymentUrl])
 
 
+  if (tourLoading) return <Loading />
   if (!tour) return <div className="text-center text-red-500">Không tìm thấy tour</div>;
 
   return (
@@ -186,7 +186,7 @@ export default function TourDetail() {
 
             <Card className="container mx-auto mt-4">
               <CardContent>
-                <div className="lg:overflow-x-auto xl:overflow-x-hidden w-full">
+                <div className="overflow-x-hidden md:overflow-x-auto w-full">
                   <div className="flex flex-col w-full lg:flex-row lg:w-max gap-6 py-2 ">
                     {similarContent}
                   </div>

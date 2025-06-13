@@ -1,22 +1,20 @@
 import axios from 'axios'
 import type { UserInfo } from '@/src/dtos/user.dto';
-import { API_VN_PAY } from '../api_info'
+import api, { API_VN_PAY } from '../api_info'
 import type { Tour } from '@/src/dtos/tour.dto';
 import type { CreatePaymentUrlResponse } from '@/src/dtos/payment.dto';
 
-const getClientIp = async (): Promise<string> => {
-    try {
-        const response = await fetch('https://api.ipify.org?format=json');
-        const data = await response.json();
-        return data.ip; // e.g., "123.123.123.123"
-    } catch (error) {
-        console.error("Failed to get client IP", error);
-        return '';
-    }
-};
+function generateRandomIP(): string {
+    return Array(4)
+        .fill(0)
+        .map(() => Math.floor(Math.random() * 256))
+        .join(".");
+}
 
 export const createPaymentOrder = async (tour: Tour, user: UserInfo): Promise<CreatePaymentUrlResponse> => {
-    const ip = await getClientIp()
+    // const ip = await getClientIp()
+    const ip = generateRandomIP()
+
     if (!ip) return { "success": false, "message": "Không tìm thấy địa chỉ IP người dùng.", "url": "" }
 
     const paymentInfo = {
@@ -27,14 +25,14 @@ export const createPaymentOrder = async (tour: Tour, user: UserInfo): Promise<Cr
         "tourCode": tour.tourCode,
         "ip": ip
     }
+    try {
+        const res = await api.post<string>(`/pay/create-order`,
+            paymentInfo
+        );
 
-    const res = await axios.post<string>(`${API_VN_PAY}/create-url`,
-        paymentInfo, // đây là phần body
-        {
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        }
-    );
-    return { "success": true, "message": "Thành công.", "url": res.data }
+        return { "success": true, "message": "Thành công.", "url": res.data }
+    } catch (error: any) {
+        console.log(error.response?.data?.error)
+        return { "success": false, "message": `${error.response?.status}` }
+    }
 }
