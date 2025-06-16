@@ -90,3 +90,8 @@ class TourFeature(BaseModel):
 class RecommendTourRequest(BaseModel):
     tour_id: str
     user_id: str
+
+
+class RecommendTourRequest2(BaseModel):
+    tour_ids: List[str] = []
+    ignore_ids: List[str] = []

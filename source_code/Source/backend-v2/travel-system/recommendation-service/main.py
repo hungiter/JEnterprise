@@ -10,12 +10,12 @@ import json
 from fastapi.responses import JSONResponse
 
 from index import clear_terminal, cache, print_new_message, is_docker
-from models.TourModel import RecommendTourRequest
+from models.TourModel import RecommendTourRequest, RecommendTourRequest2
 from service.TourService import fetch_mongo_tours, get_cache_tour
 from service.DictionaryService import fetch_dictionary_create, get_cache_dictionary, get_cache_location_word
 from service.FeatureExtractorService import analyze_tour_features, get_cache_tour_features
 from service.RecommendationService import create_similarity_matrix, get_top_n_similar_tours, get_similar_matrix, \
-    tour_recommendation
+    tour_recommendation, tour_recommendation_by_tours
 from py_vncorenlp.vncorenlp import create_nlp_model, processe_data_state
 
 # App API
@@ -30,6 +30,7 @@ app.add_middleware(
 )
 is_ready = False
 clear_terminal()
+
 
 @app.get("/")
 def root():
@@ -59,6 +60,11 @@ def cache_tour_features():
 @app.get("/similar_tour/{tour_code}")
 def get_similar_tour(tour_code: str):
     return get_top_n_similar_tours(tour_code=tour_code)
+
+
+@app.post("/similar_tour")
+def get_recommend(request: RecommendTourRequest2):
+    return tour_recommendation_by_tours(request.tour_ids, request.ignore_ids)
 
 
 @app.post("/recommend_tour")

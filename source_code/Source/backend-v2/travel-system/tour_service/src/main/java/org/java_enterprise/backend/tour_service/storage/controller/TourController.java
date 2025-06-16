@@ -6,10 +6,13 @@ import org.java_enterprise.backend.tour_service.storage.dto.TourInstanceSummaryD
 import org.java_enterprise.backend.tour_service.storage.dto.TourSummaryDTO;
 import org.java_enterprise.backend.tour_service.storage.model.SummaryToursRequest;
 import org.java_enterprise.backend.tour_service.storage.model.Tour;
+import org.java_enterprise.backend.tour_service.storage.model.TourEngagement;
+import org.java_enterprise.backend.tour_service.storage.model.TourOrder;
 import org.java_enterprise.backend.tour_service.storage.service.TourService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -57,7 +60,7 @@ public class TourController {
     }
 
 
-    // TEST INSTANCE ================================
+    // INSTANCE CONTROLLER================================
     @GetMapping("/instances/all/{tourCode}")
     public List<TourInstanceSummaryDTO> getTourInstanceSummaries(@PathVariable("tourCode") String tourCode) {
         return tourService.getTourInstanceSummaries(tourCode);
@@ -66,5 +69,78 @@ public class TourController {
     @GetMapping("/instances/info/{instanceId}")
     public Optional<TourInstanceDTO> getTourInstanceInfo(@PathVariable("instanceId") String instanceId) {
         return tourService.getInstanceInfo(instanceId);
+    }
+
+    // TAG CONTROLLER=======================================
+    @GetMapping("/tags")
+    public List<String> getAllTags() {
+        return tourService.getAllTags();
+    }
+
+    @GetMapping("/tags/find")
+    public List<String> getTagsByString(@RequestParam("input") String input) {
+        return tourService.getTagByString(input);
+    }
+
+    // ENGAGEMENT CONTROLLER================================
+    @GetMapping("/engagement")
+    public List<TourEngagement> getAllEngagements() {
+        return tourService.getAllEngagements();
+    }
+
+    @GetMapping("/engagement/find")
+    public List<TourEngagement> findEngagements(
+            @RequestParam(required = false) String userId,
+            @RequestParam(required = false) String tourId
+    ) {
+        if (userId != null && tourId != null) {
+            return List.of(tourService.getEngagementByFullValue(userId, tourId));
+        }
+
+        if (tourId != null) {
+            return tourService.getAllEngagementsByTour(tourId);
+        }
+
+        if (userId != null) {
+            return tourService.getAllEngagementsByUser(userId);
+        }
+
+        return Collections.emptyList();
+    }
+
+    @PutMapping("/engagement")
+    public TourEngagement updateEngagement(TourEngagement newValue) {
+        return tourService.updateEngagement(newValue);
+    }
+
+    // ORDER CONTROLLER=====================================
+    @GetMapping("/order")
+    public List<TourOrder> getAllTourOrders() {
+        return tourService.getAllTourOrders();
+    }
+
+    @GetMapping("/order/find")
+    public List<TourOrder> findOrders(
+            @RequestParam(required = false) String userId,
+            @RequestParam(required = false) String instanceId
+    ) {
+        if (userId != null && instanceId != null) {
+            return List.of(tourService.getOrderByFullValue(userId, instanceId));
+        }
+
+        if (instanceId != null) {
+            return tourService.getAllOrdersByInstance(instanceId);
+        }
+
+        if (userId != null) {
+            return tourService.getAllOrdersByUser(userId);
+        }
+
+        return Collections.emptyList();
+    }
+
+    @PutMapping("/order")
+    public TourOrder updateOrder(TourOrder newValue) {
+        return tourService.updateOrder(newValue);
     }
 }

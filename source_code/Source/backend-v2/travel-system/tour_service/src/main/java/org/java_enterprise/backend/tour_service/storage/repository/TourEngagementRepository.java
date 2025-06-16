@@ -11,5 +11,8 @@ public interface TourEngagementRepository extends MongoRepository<TourEngagement
     List<TourEngagement> findByUserId(String userId);
 
     List<TourEngagement> findBySessionId(String sessionId);
+
+    TourEngagement findTop1ByUserIdAndTourIdOrderByCreatedAtDesc(String userId, String tourId);
+
 }
 

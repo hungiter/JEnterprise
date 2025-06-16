@@ -5,14 +5,14 @@ import org.java_enterprise.backend.tour_service.storage.dto.TourInstanceDTO;
 import org.java_enterprise.backend.tour_service.storage.dto.TourInstanceSummaryDTO;
 import org.java_enterprise.backend.tour_service.storage.dto.TourSummaryDTO;
 import org.java_enterprise.backend.tour_service.storage.model.Tour;
-import org.java_enterprise.backend.tour_service.storage.repository.TourEngagementRepository;
+import org.java_enterprise.backend.tour_service.storage.model.TourEngagement;
+import org.java_enterprise.backend.tour_service.storage.model.TourOrder;
 import org.java_enterprise.backend.tour_service.storage.repository.TourRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -24,7 +24,11 @@ public class TourService {
     @Autowired
     private TourInstanceService tourInstanceService;
     @Autowired
-    private TourEngagementRepository tourEngagementRepository;
+    private TourEngagementService tourEngagementService;
+    @Autowired
+    private TourOrderService tourOrderService;
+    @Autowired
+    private TourTagService tourTagService;
 
     public void saveTours(List<Tour> tours) {
         tourRepository.saveAll(tours);
@@ -106,7 +110,7 @@ public class TourService {
     }
 
 
-    // TEST INSTANCE ================================
+    // INSTANCE SERVICE ================================
     public List<TourInstanceSummaryDTO> getTourInstanceSummaries(String tourCode) {
         return tourInstanceService.getValidTourInstances(tourCode);
     }
@@ -115,7 +119,59 @@ public class TourService {
         return tourInstanceService.getTourInstanceInfo(instanceId);
     }
 
-    // Supported
+    // TAG SERVICE ==================================
+    public List<String> getTagByString(String input) {
+        return tourTagService.getTourTagListByValue(input);
+    }
+
+    public List<String> getAllTags() {
+        return tourTagService.getTourTagList();
+    }
+
+    // ENGAGEMENT SERVICE ===========================
+    public List<TourEngagement> getAllEngagements() {
+        return tourEngagementService.getAllEngagements();
+    }
+
+    public List<TourEngagement> getAllEngagementsByUser(String userId) {
+        return tourEngagementService.getAllEngagementsByUser(userId);
+    }
+
+    public List<TourEngagement> getAllEngagementsByTour(String tourId) {
+        return tourEngagementService.getAllEngagementsByTour(tourId);
+    }
+
+    public TourEngagement getEngagementByFullValue(String userId, String tourId) {
+        return tourEngagementService.getEngagementByFullValue(userId, tourId);
+    }
+
+    public TourEngagement updateEngagement(TourEngagement newValue) {
+        return tourEngagementService.updateEngagement(newValue);
+    }
+
+    // ORDER SERVICE ================================
+    public List<TourOrder> getAllTourOrders() {
+        return tourOrderService.getAllTourOrders();
+    }
+
+    public List<TourOrder> getAllOrdersByUser(String userId) {
+        return tourOrderService.getAllOrdersByUser(userId);
+    }
+
+    public List<TourOrder> getAllOrdersByInstance(String instanceId) {
+        return tourOrderService.getAllOrdersByInstance(instanceId);
+    }
+
+    public TourOrder getOrderByFullValue(String userId, String instanceId) {
+        return tourOrderService.getOrderByFullValue(userId, instanceId);
+    }
+
+    public TourOrder updateOrder(TourOrder newValue) {
+        return tourOrderService.updateOrder(newValue);
+    }
+
+
+    // SUPPORTED ====================================
     public LocalDate instanceToCalendarDate(String instance) {
         if (instance == null || !instance.contains("_")) return null;
 
