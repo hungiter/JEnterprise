@@ -12,6 +12,7 @@ import {
   transports,
 } from "../../services/data";
 import { Card, CardContent } from "@/src/components/ui/card";
+import { AxiosError } from 'axios';
 
 export default function Tours() {
   const [tours, setTours] = useState<TourSummary[]>([])
@@ -20,8 +21,12 @@ export default function Tours() {
       try {
         const data = await fetchAllTourSummaries()
         setTours(data)
-      } catch (err) {
-        console.error("Failed to fetch tours", err)
+      } catch (error: unknown) {
+        if (error instanceof AxiosError) {
+          console.log("Lấy danh sách tour thất bại: ", error.message);
+        } else {
+          console.error("Lấy danh sách tour thất bại:\n", error);
+        }
       }
     }
     loadTours()

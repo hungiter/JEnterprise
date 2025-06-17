@@ -6,6 +6,7 @@ import type { Tour } from "../dtos/tour.dto";
 import type { UserInfo } from "../dtos/user.dto";
 import { getUserInfoFromCookie } from "./LoginContext";
 import { clearCookie } from "../services/cookies/Cookies";
+import { AxiosError } from "axios";
 
 interface VnpayContextProps {
     // Tắt mở popup
@@ -126,8 +127,12 @@ export const getVnpayRequestFromCookie = (
     if (match) {
         try {
             return JSON.parse(decodeURIComponent(match[1]));
-        } catch (e) {
-            console.error("Failed to parse VNPAY request from cookie:", e);
+        } catch (e: unknown) {
+            if (e instanceof Error) {
+                console.error("Failed to parse VNPAY request from cookie: ", e.message);
+            } else {
+                console.error("Failed to parse VNPAY request from cookie:\n", e);
+            }
         }
     }
 
@@ -175,12 +180,16 @@ export const VnpayProvider = ({ children }: { children: ReactNode }) => {
                     } else {
                         removeVnpayCookie(request.name, request.tourCode);
                     }
-                } catch (error: any) {
-                    console.log(error.response?.data?.error);
+                } catch (error: unknown) {
+                    throw new Error(`Tạo đơn hàng thất bại: ${error}`);
                 }
             }
-        } catch (error) {
-            console.log(`${error}`);
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                console.log(error.message);
+            } else {
+                console.log("Tạo đơn hàng thất bại: ", error);
+            }
         }
         setOnCreateUrl(false);
         setRequest(null);

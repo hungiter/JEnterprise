@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios, { AxiosError } from 'axios'
 import type { UserInfo } from '@/src/dtos/user.dto';
 import api, { API_VN_PAY } from '../api_info'
 import type { Tour } from '@/src/dtos/tour.dto';
@@ -31,8 +31,13 @@ export const createPaymentOrder = async (tour: Tour, user: UserInfo): Promise<Cr
         );
 
         return { "success": true, "message": "Thành công.", "url": res.data }
-    } catch (error: any) {
-        console.log(error.response?.data?.error)
-        return { "success": false, "message": `${error.response?.status}` }
+    } catch (error: unknown) {
+        if (error instanceof AxiosError) {
+            console.log(error.response?.data?.error)
+            return { "success": false, "message": `${error.response?.status}` }
+        } else {
+            console.log(error)
+            return { "success": false, "message": `${error}` }
+        }
     }
 }

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { getCookie } from "../services/cookies/Cookies";
 import type { LoginResponse, UserInfo } from "../dtos/user.dto";
 import api from "../services/api_info";
+import { AxiosError } from "axios";
 
 interface LoginContextProps {
     showLogin: boolean;
@@ -44,7 +45,13 @@ export const login = async (username: string, password: string): Promise<LoginRe
         }
 
         return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
+        if (error instanceof AxiosError) {
+            return {
+                success: false,
+                message: `${error.message}`
+            }
+        }
         return {
             success: false,
             message: `${error}`
@@ -69,8 +76,12 @@ export const getUserInfoFromCookie = (): UserInfo | null => {
     if (match) {
         try {
             return JSON.parse(decodeURIComponent(match[1]));
-        } catch (e) {
-            console.error("Failed to parse UserInfo request from cookie:", e);
+        } catch (e: unknown) {
+            if (e instanceof Error) {
+                console.error("Failed to parse UserInfo request from cookie: ", e.message);
+            } else {
+                console.error("Failed to parse UserInfo request from cookie:\n", e);
+            }
         }
     }
 

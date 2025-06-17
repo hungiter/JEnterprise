@@ -20,3 +20,17 @@ export const fetchSummaryTours = async (tourCodes: string[]): Promise<TourSummar
     console.log(res.data);
     return res.data
 }
+
+export const fetchSummaryToursByTags = async (tags: string[]): Promise<TourSummary[]> => {
+    const res = await axios.post<TourSummary[]>(`${API_TOUR_BASE}/summary_tours`,
+        { "tags": tags }, // đây là phần body
+        {
+            headers: {
+                'Content-Type': 'application/json',
+                "ngrok-skip-browser-warning": "true"
+            }
+        }
+    );
+    console.log(res.data);
+    return res.data
+}

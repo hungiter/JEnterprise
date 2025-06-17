@@ -1,5 +1,5 @@
 // app/src/services/tour/TourService.ts
-import axios from 'axios'
+import axios, { AxiosError } from 'axios'
 import { API_TOUR_BASE } from '../api_info'
 
 export const update_tour_viewers = async (tour_code: string) => {
@@ -12,7 +12,11 @@ export const update_tour_viewers = async (tour_code: string) => {
                 headers: { "ngrok-skip-browser-warning": "true" }
             }
         );
-    } catch (error) {
-        console.log(`Update tour_viewer failed. ${error}`)
+    } catch (error: unknown) {
+        if (error instanceof AxiosError) {
+            console.log(`Cập nhật số lượng xem tour thất bại: ${error.message}`)
+        } else {
+            console.error(`Cập nhật số lượng xem tour thất bại:\n ${error}`)
+        }
     }
 }

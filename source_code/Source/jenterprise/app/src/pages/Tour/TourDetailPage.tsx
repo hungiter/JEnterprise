@@ -19,6 +19,7 @@ import Loading from "@/src/components/Loading";
 import { useLogin } from "@/src/context/LoginContext";
 import { clearCookie, getCookie } from "@/src/services/cookies/Cookies";
 import { useVnpay, createPaymentRequest } from "@/src/context/VnpayContext";
+import { AxiosError } from "axios";
 
 export default function TourDetail() {
   const { tourCode } = useParams<{ tourCode: string }>();
@@ -48,8 +49,12 @@ export default function TourDetail() {
       try {
         const fetchedTour = await fetchTourByCode(tourCode);
         setTour(fetchedTour);
-      } catch (error) {
-        setTourError(`Failed to fetch similar ${tourCode}'s details:\n${error}`);
+      } catch (error: unknown) {
+        if (error instanceof AxiosError) {
+          setTourError(`Lấy thông tin tour ${tourCode} thất bại: ${error.message}`);
+        } else {
+          setTourError(`Lấy thông tin tour ${tourCode} thất bại: ${error}`);
+        }
       } finally {
         setTourLoading(false);
       }
@@ -59,8 +64,12 @@ export default function TourDetail() {
       try {
         const fetchedResult = await fetchSimilarTours(tourCode);
         setRecommendResult(fetchedResult);
-      } catch (error) {
-        setSimilarError(`Failed to fetch similar tour codes:\n${error}`);
+      } catch (error: unknown) {
+        if (error instanceof AxiosError) {
+          setSimilarError(`Lấy tour tương tự thất bại: ${error.message}`);
+        } else {
+          setSimilarError(`Lấy tour tương tự thất bại: ${error}`);
+        }
       } finally {
         setSimilarLoading(false);
       }
@@ -76,8 +85,12 @@ export default function TourDetail() {
         try {
           const fetchedResult = await fetchSummaryTours(recommendResult.summary);
           setSimilarTours(fetchedResult);
-        } catch (error) {
-          setSimilarError(`Failed to fetch similar tours's info:\n${error}`);
+        } catch (error: unknown) {
+          if (error instanceof AxiosError) {
+            setSimilarError(`Lấy tour tương tự thất bại: ${error.message}`);
+          } else {
+            setSimilarError(`Lấy tour tương tự thất bại: ${error}`);
+          }
         } finally {
           setSimilarLoading(false);
         }
@@ -133,8 +146,12 @@ export default function TourDetail() {
       } else {
         clearCookie("accessToken");
       }
-    } catch (error) {
-      console.log(`createPaymentRequest Failed ${error}`);
+    } catch (error: unknown) {
+      if (error instanceof AxiosError) {
+        console.log(`Tạo đơn hàng thất bại: ${error.message}`);
+      } else {
+        console.error(`Tạo đơn hàng thất bại:\n${error}`);
+      }
     }
   };
   // useEffect(() => {
