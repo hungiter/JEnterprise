@@ -77,7 +77,7 @@ public class TourController {
     }
 
     @GetMapping("/tags/find")
-    public List<String> getTagsByString(@RequestParam("input") String input) {
+    public TagFoundResponseDTO getTagsByString(@RequestParam("input") String input) {
         return tourService.getTagByString(input);
     }
 
@@ -89,8 +89,8 @@ public class TourController {
 
     @GetMapping("/engagement/find")
     public List<TourEngagement> findEngagements(
-            @RequestParam(required = false) String username,
-            @RequestParam(required = false) String tourId
+            @RequestParam(name = "username", required = false) String username,
+            @RequestParam(name = "tourId", required = false) String tourId
     ) {
         if (username != null && tourId != null) {
             TourEngagement engagement = tourService.getEngagementByFullValue(username, tourId);
@@ -123,8 +123,8 @@ public class TourController {
 
     @GetMapping("/order/find")
     public List<TourOrder> findOrders(
-            @RequestParam(required = false) String username,
-            @RequestParam(required = false) String instanceId
+            @RequestParam(name = "username", required = false) String username,
+            @RequestParam(name = "instanceId", required = false) String instanceId
     ) {
         if (username != null && instanceId != null) {
             return List.of(tourService.getOrderByFullValue(username, instanceId));

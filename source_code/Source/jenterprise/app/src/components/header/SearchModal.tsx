@@ -1,5 +1,5 @@
 // Create a search modal component
-import { FaSearch, FaTimes, FaPlus, FaQuestionCircle } from "react-icons/fa";
+import { FaSearch, FaTimes, FaPlus, FaQuestionCircle, FaChevronDown, FaChevronUp } from "react-icons/fa";
 import { useSearch } from "../../context/SearchContext";
 import { useToast } from "../../context/ToastContext";
 import { useNavigate } from "react-router-dom";
@@ -88,6 +88,37 @@ const SearchModal = () => {
             ref={containerRef}
             onClick={handleClick}
         >
+            {/* Custom Scrollbar Styles */}
+            <style>{`
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 8px;
+                }
+                
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: #eff6ff; /* blue-50 - lighter background */
+                    border-radius: 8px;
+                    margin: 2px;
+                }
+                
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: #93c5fd; /* blue-300 - softer blue */
+                    border-radius: 8px;
+                    transition: all 0.3s ease;
+                    border: 1px solid #dbeafe; /* blue-100 border */
+                }
+                
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: #60a5fa; /* blue-400 - slightly darker on hover */
+                    transform: scale(1.05);
+                }
+                
+                /* Firefox scrollbar */
+                .custom-scrollbar {
+                    scrollbar-width: thin;
+                    scrollbar-color: #93c5fd #eff6ff;
+                }
+            `}</style>
+
             {/* Search Input and Button */}
             <div className={`flex items-center border rounded-lg bg-white text-black ${onFocus ? 'border-blue-500' : 'border-gray-300'}`}>
                 <div className="flex-1 flex items-center p-2">
@@ -158,28 +189,43 @@ const SearchModal = () => {
                                 title="Nhấn '+' để thêm từ khóa này vào danh sách tìm kiếm"
                             />
                         </div>
-                        <div className="flex flex-wrap gap-2">
-                            {searchTags.length > 0 ? (
-                                searchTags.map((tag) => (
-                                    <div
-                                        key={tag}
-                                        className="flex items-center bg-gray-100 text-gray-800 px-3 py-1.5 rounded-full text-sm cursor-pointer hover:bg-gray-200 group relative"
-                                        title={`Thêm từ khóa: ${tag} vào tìm kiếm`}
-                                    >
-                                        <span>{tag}</span>
-                                        <FaPlus
-                                            size={12}
-                                            className="ml-2 text-gray-600 hover:text-blue-600 font-bold hover:font-bold"
-                                            onClick={() => addSelectedTag(tag)}
-                                            title="Thêm từ khóa này"
-                                        />
-                                    </div>
-                                ))
-                            ) : (
-                                <div className="text-gray-500 text-sm">
-                                    {input.trim() ? "Không có gợi ý" : "Nhập từ gì đó để gợi ý"}
-                                </div>
-                            )}
+                        <div className="max-h-[120px] overflow-y-auto custom-scrollbar">
+                            <div className="flex flex-wrap gap-2">
+                                {(() => {
+                                    const filteredTags = searchTags.filter((tag) => !selectedTags.includes(tag));
+                                    const sortedTags = filteredTags.sort((a, b) => a.length - b.length);
+                                    
+                                    if (sortedTags.length > 0) {
+                                        return sortedTags.map((tag) => (
+                                            <div
+                                                key={tag}
+                                                className="flex items-center bg-gray-100 text-gray-800 px-3 py-1.5 rounded-full text-sm cursor-pointer hover:bg-gray-200 group relative"
+                                                title={`Thêm từ khóa: ${tag} vào tìm kiếm`}
+                                            >
+                                                <span>{tag}</span>
+                                                <FaPlus
+                                                    size={12}
+                                                    className="ml-2 text-gray-600 hover:text-blue-600 font-bold hover:font-bold"
+                                                    onClick={() => addSelectedTag(tag)}
+                                                    title="Thêm từ khóa này"
+                                                />
+                                            </div>
+                                        ));
+                                    } else if (searchTags.length > 0) {
+                                        return (
+                                            <div className="text-gray-500 text-sm">
+                                                Tất cả gợi ý đã được chọn
+                                            </div>
+                                        );
+                                    } else {
+                                        return (
+                                            <div className="text-gray-500 text-sm">
+                                                {input.trim() ? "Không có gợi ý" : "Nhập từ gì đó để gợi ý"}
+                                            </div>
+                                        );
+                                    }
+                                })()}
+                            </div>
                         </div>
                     </div>
 
@@ -198,12 +244,12 @@ const SearchModal = () => {
                                 <p className="mt-2 text-gray-500">Loading...</p>
                             </div>
                         ) : searchResult.length > 0 ? (
-                            <div className="space-y-3">
+                            <div className="space-y-3 text-black">
                                 {searchResult.map((tour) => (
                                     <div
                                         key={tour.tour_code}
                                         className="flex items-center space-x-4 p-2 hover:bg-gray-50 rounded cursor-pointer"
-                                        onClick={() => navigate(`/tour/${tour.tour_code}`)}
+                                        onClick={() => navigate(`/tours/${tour.tour_code}`)}
                                         title={`Xem chi tiết tour: ${tour.title}`}
                                     >
                                         <img

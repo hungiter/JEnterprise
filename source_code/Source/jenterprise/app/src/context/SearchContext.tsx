@@ -41,7 +41,7 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
     const [searchResult, setSearchResult] = useState<TourSummary[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
 
-    const fetchedCache = useRef<Set<string>>(new Set());
+    const fetchedCache = useRef<Map<string, string[]>>(new Map());
     const { tags, fetchTagIfNeeded } = useTag();
     const keySearch = useRef<string | null>(null);
     const keyPending = useRef<string | null>(null);
@@ -52,7 +52,10 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
 
     const fetchingTag = useCallback(async () => {
         // Get valid tags
-        const keyword = input.trim().toLowerCase();
+        const keyword = input.trim();
+        if (keySearch.current == keyword) {
+            return;
+        }
         keySearch.current = keyword;
 
         if (!keyword) {
@@ -63,8 +66,9 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
 
         // Bỏ qua nếu tag đã chọn rồi
         const filteredLocal = tags.filter(tag =>
-            tag.toLowerCase().includes(keyword) &&
-            !selectedTags.includes(tag)
+            keySearch.current != null &&
+            (tag.includes(keySearch.current)
+                || tag.toLowerCase().includes(keySearch.current.toLowerCase()))
         );
 
         if (filteredLocal.length > 0) {
@@ -75,15 +79,16 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
 
         // Nếu chưa có trong local và chưa fetch trước đó
         if (!fetchedCache.current.has(keyword)) {
-            let fetched = [];
+            let fetched: string[] = [];
             try {
                 fetched = await fetchTagIfNeeded(keyword);
                 const filteredFetched = fetched.filter(tag =>
-                    tag.toLowerCase().includes(keyword) &&
-                    !selectedTags.includes(tag)
+                    keySearch.current != null &&
+                    (tag.includes(keySearch.current)
+                        || tag.toLowerCase().includes(keySearch.current.toLowerCase()))
                 );
                 setSearchTags(filteredFetched);
-                fetchedCache.current.add(keyword);
+                fetchedCache.current.set(keyword, filteredFetched);
             } catch (error: unknown) {
                 if (error instanceof AxiosError) {
                     console.log("Lấy tag thất bại: ", error.message);
@@ -97,10 +102,18 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
                     setSearchTags(newTags);
                     console.log("Search keys:", keySearch.current);
                     console.log("New search tags:", newTags.join(","));
+                } else {
+                    console.log("Tag fetched: ", fetched.join(","));
                 }
                 setOnSearchTag(false);
             }
         } else {
+            // Use cached data
+            const cachedTags = fetchedCache.current.get(keyword) || [];
+            const filteredCached = cachedTags.filter(tag =>
+                !selectedTags.includes(tag)
+            );
+            setSearchTags(filteredCached);
             setOnSearchTag(false);
         }
     }, [input, tags, selectedTags, fetchTagIfNeeded, searchTags]);
@@ -130,7 +143,9 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
 
     const fetchAll = useCallback(async () => {
         await Promise.all([fetchingTag(), searchByTags()]);
-        console.log("Finished fetching");
+        // if (keySearch.current == null) {
+        //     console.log("Finished fetching");
+        // }
     }, [fetchingTag, searchByTags]);
 
     useEffect(() => {
@@ -148,6 +163,7 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
             return;
         }
 
+        keySearch.current = null;
         setOnSearchTag(true);
         setOnSearchTour(true);
         fetchAll();
@@ -158,7 +174,7 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
     }, [onSearchTag, onSearchTour]);
 
     useEffect(() => {
-        if (keyPending.current?.trim().toLowerCase() === keySearch.current) {
+        if (keyPending.current === keySearch.current) {
             keyPending.current = null;
         }
 

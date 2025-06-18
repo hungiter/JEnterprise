@@ -9,6 +9,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class OrderCreateRequestDTO {
     private String instanceId;
-    private String userId;
+    private String username;
     private Integer totalTicket;
 }

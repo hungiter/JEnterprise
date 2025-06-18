@@ -82,8 +82,8 @@ public class TourMicroserviceController {
 
     @GetMapping("/engagement/find")
     public ResponseEntity<String> findEngagements(
-            @RequestParam(required = false) String username,
-            @RequestParam(required = false) String tourId
+            @RequestParam(name = "username", required = false) String username,
+            @RequestParam(name = "tourId", required = false) String tourId
     ) {
         List<String> params = new ArrayList<>();
 
@@ -114,8 +114,8 @@ public class TourMicroserviceController {
 
     @GetMapping("/order/find")
     public ResponseEntity<String> findOrders(
-            @RequestParam(required = false) String username,
-            @RequestParam(required = false) String instanceId
+            @RequestParam(name = "username", required = false) String username,
+            @RequestParam(name = "instanceId", required = false) String instanceId
     ) {
         List<String> params = new ArrayList<>();
 
@@ -140,8 +140,9 @@ public class TourMicroserviceController {
 
     @PutMapping("/order/accept")
     public ResponseEntity<String> acceptOrder(@RequestBody String requestJson) {
-        return forwardRequest(HttpMethod.PUT, "/order/update", requestJson);
+        return forwardRequest(HttpMethod.PUT, "/order/accept", requestJson);
     }
+
     @PutMapping("/order/reject")
     public ResponseEntity<String> rejectOrder(@RequestBody String requestJson) {
         return forwardRequest(HttpMethod.PUT, "/order/reject", requestJson);

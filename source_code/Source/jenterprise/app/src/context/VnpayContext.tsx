@@ -84,7 +84,7 @@ const saveVnpayRequestToCookie = (
         };
 
         const cookieName = `vnpay_request_${username}_${tourCode}`;
-        const cookieValue = encodeURIComponent(JSON.stringify(request));
+        const cookieValue = JSON.stringify(request);
         document.cookie = `${cookieName}=${cookieValue}; path=/; max-age=86400`;
         return request;
     }
@@ -96,21 +96,22 @@ const buildVnpayUrl = (
     baseUrl: string,
     data: VnpayPaymentRequest
 ): string => {
-    const params = new URLSearchParams({
-        vnp_Amount: data.vnp_Amount,
-        vnp_Command: data.vnp_Command,
-        vnp_CreateDate: data.vnp_CreateDate,
-        vnp_CurrCode: data.vnp_CurrCode,
-        vnp_IpAddr: data.vnp_IpAddr,
-        vnp_Locale: data.vnp_Locale,
-        vnp_OrderInfo: encodeURIComponent(data.vnp_OrderInfo),
-        vnp_OrderType: data.vnp_OrderType,
-        vnp_ReturnUrl: encodeURIComponent(data.vnp_ReturnUrl),
-        vnp_TmnCode: data.vnp_TmnCode,
-        vnp_TxnRef: data.vnp_TxnRef,
-        vnp_Version: data.vnp_Version,
-        vnp_SecureHash: data.vnp_SecureHash
-    });
+    const params = new URLSearchParams();
+
+    // Add parameters without double encoding
+    params.set("vnp_Amount", data.vnp_Amount);
+    params.set("vnp_Command", data.vnp_Command);
+    params.set("vnp_CreateDate", data.vnp_CreateDate);
+    params.set("vnp_CurrCode", data.vnp_CurrCode);
+    params.set("vnp_IpAddr", data.vnp_IpAddr);
+    params.set("vnp_Locale", data.vnp_Locale);
+    params.set("vnp_OrderInfo", data.vnp_OrderInfo);
+    params.set("vnp_OrderType", data.vnp_OrderType);
+    params.set("vnp_ReturnUrl", data.vnp_ReturnUrl);
+    params.set("vnp_TmnCode", data.vnp_TmnCode);
+    params.set("vnp_TxnRef", data.vnp_TxnRef);
+    params.set("vnp_Version", data.vnp_Version);
+    params.set("vnp_SecureHash", data.vnp_SecureHash);
 
     return `${baseUrl}?${params.toString()}`;
 };
@@ -188,7 +189,7 @@ export const VnpayProvider = ({ children }: { children: ReactNode }) => {
             if (error instanceof Error) {
                 console.log(error.message);
             } else {
-                console.log("Tạo đơn hàng thất bại: ", error);
+                console.error("Tạo đơn hàng thất bại: ", error);
             }
         }
         setOnCreateUrl(false);

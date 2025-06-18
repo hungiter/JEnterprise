@@ -7,6 +7,7 @@ import org.java_enterprise.backend.tour_service.storage.repository.TourEngagemen
 import org.java_enterprise.backend.tour_service.storage.repository.TourTagRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -24,9 +25,10 @@ public class TourEngagementService {
     private final List<TourEngagement> engagementList = new ArrayList<>();
     private final Object lock = new Object();
 
+    @Async("taskExecutor")
     @EventListener(ApplicationReadyEvent.class)
-    @Async
     public void initAsync() {
+        System.out.println("TourEngagementService.initAsync() - executed");
         fetchAllAndStore();
     }
 

@@ -13,6 +13,9 @@ const BASE_URL = "https://ultimately-flowing-stag.ngrok-free.app/api"
 export const API_USER_BASE = `${BASE_URL}/users`;
 export const API_AUTH_BASE = `${BASE_URL}/auth`;
 export const API_TOUR_BASE = `${BASE_URL}/tours`;
+export const API_TAG_BASE = `${API_TOUR_BASE}/tags`; // Only using /tags/find?input={input}
+export const API_INSTANCE_BASE = `${BASE_URL}/instances`; // Only using /instances/info/{instance_id}
+export const API_ENGAGEMENT_BASE = `${BASE_URL}/engagement`; // Only using /engagement/find?username={username}&tour_id={tour_id}
 export const API_AI_BASE = `${BASE_URL}/ai`;
 export const API_VN_PAY = `${BASE_URL}/pay`;
 

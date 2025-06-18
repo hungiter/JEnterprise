@@ -10,6 +10,7 @@ import org.java_enterprise.backend.tour_service.storage.model.TourInstance;
 import org.java_enterprise.backend.tour_service.storage.repository.TourInstanceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -31,9 +32,10 @@ public class TourInstanceService {
     private final Map<String, List<TourInstanceSummaryDTO>> summaryMap = new HashMap<>();
     private final Object lock = new Object();
 
+    @Async("taskExecutor")
     @EventListener(ApplicationReadyEvent.class)
-    @Async
     public void initAsync() {
+        System.out.println("TourInstanceService.initAsync() - executed");
         fetchAllAndStore();
     }
 
@@ -54,8 +56,9 @@ public class TourInstanceService {
                     LocalDate targetDate = LocalDate.parse(dateStr);
                     LocalDate startDate = LocalDate.parse(instance.getStartDate());
                     if (tmpMap.containsKey(instance.getTourId()) && Objects.equals(instance.getStatus(), "PENDING") && startDate.isBefore(targetDate)) {
-                        List<TourInstance> oldList = tmpMap.get(instance.getTourId());
-                        tmpMap.remove(instance.getTourId(), oldList);
+                        List<TourInstance> oldList = new ArrayList<>(tmpMap.get(instance.getTourId()));
+                        oldList.add(instance);
+                        tmpMap.replace(instance.getTourId(), oldList);
                     } else {
                         tmpMap.put(instance.getTourId(), List.of(instance));
                     }
@@ -65,7 +68,7 @@ public class TourInstanceService {
                     String key = entry.getKey();
                     List<TourInstance> value = entry.getValue();
 
-                    System.out.println("Added " + value.size() + " instances of " + key);
+//                    System.out.println("Added " + value.size() + " instances of " + key);
                     List<TourInstanceSummaryDTO> summaries = value.stream().map(tour -> new TourInstanceSummaryDTO(
                             tour.getInstanceId(),
                             tour.getTourId(),
@@ -82,13 +85,16 @@ public class TourInstanceService {
                             TourInstanceSummaryDTO summary = summaries.get(i);
                             boolean exists = currInstances.stream()
                                     .anyMatch(oldValue -> Objects.equals(oldValue.getInstanceId(), instance.getInstanceId()));
-                            if (!exists) {
-                                try {
+                            try {
+                                if (!exists) {
                                     currInstances.add(instance);
                                     currSummaries.add(summary);
-                                } catch (Exception e) {
-                                    System.out.println("Lỗi ở đây " + e.getMessage());
+                                } else {
+                                    currInstances.set(i, instance);
+                                    currSummaries.set(i, summary);
                                 }
+                            } catch (Exception e) {
+                                System.out.println("Lỗi ở đây " + e.getMessage());
                             }
                         }
 
@@ -130,7 +136,7 @@ public class TourInstanceService {
                         })
                         .toList();
                 if (!instances.isEmpty()) {
-                    System.out.println("Added " + instances.size() + " instances of " + tourCode);
+//                    System.out.println("Added " + instances.size() + " instances of " + tourCode);
                     instanceMap.put(tourCode, instances);
                     summaryMap.put(tourCode, instances.stream().map(tour -> new TourInstanceSummaryDTO(
                             tour.getInstanceId(),

@@ -19,7 +19,9 @@ public class TourOrder {
     @Field("username")
     private String username;
     @Field("totalTicket")
-    private Integer totalTicket; // default 1
+    private int totalTicket; // default 1
+    @Field("ticketPrice")
+    private int ticketPrice;
     @Field("status")
     private String status; // pending, apply, deny (full)
     @Field("createdAt")

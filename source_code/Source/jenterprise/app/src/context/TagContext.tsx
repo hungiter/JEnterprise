@@ -18,17 +18,6 @@ const useTag = () => {
     return context;
 };
 
-const updateTag = (new_tags: string[]) => {
-    const { tags, setTags } = useTag();
-
-    // Tạo Set để tránh trùng lặp
-    const tagSet = new Set([...tags, ...new_tags]);
-    const save_tags = Array.from(tagSet);
-
-    setTags(save_tags);
-    saveListToCookies("tags", save_tags);
-};
-
 const TagProvider = ({ children }: { children: ReactNode }) => {
     const [tags, setTags] = useState<string[]>([]);
 
@@ -39,6 +28,15 @@ const TagProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [])
 
+    const updateTag = (new_tags: string[]) => {
+        // Tạo Set để tránh trùng lặp
+        const tagSet = new Set([...tags, ...new_tags]);
+        const save_tags = Array.from(tagSet);
+
+        setTags(save_tags);
+        saveListToCookies("tags", save_tags);
+    };
+
     const fetchTagIfNeeded = async (keyword: string): Promise<string[]> => {
         try {
             const result = await searchTagsFromServer(keyword); // gọi API
@@ -48,8 +46,7 @@ const TagProvider = ({ children }: { children: ReactNode }) => {
             const newTags = result.filter(tag => !tags.includes(tag));
             if (newTags.length > 0) {
                 const updatedTags = [...tags, ...newTags];
-                setTags(updatedTags);
-                saveListToCookies("tags", updatedTags);
+                updateTag(updatedTags)
             }
             return result;
         } catch (error: unknown) {

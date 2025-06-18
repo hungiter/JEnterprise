@@ -1,10 +1,10 @@
 package org.java_enterprise.backend.tour_service.storage.service;
 
-import jakarta.annotation.PostConstruct;
 import org.java_enterprise.backend.tour_service.storage.model.TourOrder;
 import org.java_enterprise.backend.tour_service.storage.repository.TourOrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -12,6 +12,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class TourOrderService {
@@ -19,13 +20,15 @@ public class TourOrderService {
     private TourOrderRepository tourOrderRepository;
 
     Set<String> existingKeys = new HashSet<>();
-    private final List<TourOrder> orderList = new ArrayList<>();
+    private final Map<String, List<TourOrder>> tourMap = new HashMap<>();
+    private final Map<String, TourOrder> orderMap = new HashMap<>();
     private final Object lock = new Object();
 
 
+    @Async("taskExecutor")
     @EventListener(ApplicationReadyEvent.class)
-    @Async
     public void initAsync() {
+        System.out.println("TourOrderService.initAsync() - executed");
         fetchAllAndStore();
     }
 
@@ -35,28 +38,96 @@ public class TourOrderService {
 
     public void fetchAllAndStore() {
         synchronized (lock) {
-            orderList.clear();
-            int page = 0;
-            int size = 100; // chunk size
-            Page<TourOrder> pageResult;
+            orderMap.clear();
+            try {
+                int page = 0;
+                int size = 100; // chunk size
+                Page<TourOrder> pageResult;
+                do {
+                    pageResult = tourOrderRepository.findAll(PageRequest.of(page, size));
+                    List<TourOrder> orders = pageResult.getContent();
+                    Map<String, List<TourOrder>> tmpMap = new HashMap<>();
 
-            do {
-                pageResult = tourOrderRepository.findAll(PageRequest.of(page, size));
-                for (TourOrder order : pageResult.getContent()) {
-                    String key = keyGenerate(order.getUsername(), order.getInstanceId());
-                    if (existingKeys.add(key)) { // only add if not already present
-                        orderList.add(order);
+                    for (TourOrder order : orders) {
+                        String instanceId = order.getInstanceId();
+                        try {
+                            String tourCode = instanceId.split("_")[0];
+                            if (tmpMap.containsKey(tourCode)) {
+                                List<TourOrder> oldList = tmpMap.get(tourCode);
+                                oldList.add(order);
+                                tmpMap.replace(tourCode, oldList);
+                            } else {
+                                tmpMap.put(tourCode, List.of(order));
+                            }
+                        } catch (Exception e) {
+                            System.out.println("Error on update tmpMap" + e);
+                        }
                     }
-                }
-                page++;
-            } while (!pageResult.isLast());
+                    for (Map.Entry<String, List<TourOrder>> entry : tmpMap.entrySet()) {
+                        String entryKey = entry.getKey();
+                        List<TourOrder> entryValue = entry.getValue();
+
+                        if (tourMap.containsKey(entryKey)) {
+                            tourMap.put(entryKey, entryValue);
+                        } else {
+                            List<TourOrder> currOrders = tourMap.get(entryKey);
+                            for (int i = 0; i < entryValue.size(); i++) {
+                                TourOrder order = entryValue.get(i);
+                                boolean exists = currOrders.stream()
+                                        .anyMatch(oldValue ->
+                                                Objects.equals(oldValue.getInstanceId(), order.getInstanceId())
+                                                        && Objects.equals(oldValue.getUsername(), order.getUsername()));
+                                try {
+                                    if (!exists) {
+                                        currOrders.add(order);
+                                    } else {
+                                        currOrders.set(i, order);
+                                    }
+                                } catch (Exception e) {
+                                    System.out.println("Lỗi ở đây " + e.getMessage());
+                                }
+                            }
+                            tourMap.replace(entryKey, currOrders);
+                        }
+
+                        entryValue.forEach(order -> {
+                            String key = keyGenerate(order.getUsername(), order.getInstanceId());
+                            if (!orderMap.containsKey(key)) {
+                                orderMap.put(key, order);
+                            } else {
+                                TourOrder currOrder = orderMap.get(key);
+                                if (currOrder != null) {
+                                    if (!Objects.equals(order.getStatus(), currOrder.getStatus()) && order.getStatus() != null) {
+                                        boolean upToDate = switch (order.getStatus()) {
+                                            case "accept", "reject" ->
+                                                    !Objects.equals(currOrder.getStatus(), "pending");
+                                            default -> true;
+                                        };
+
+                                        if (!upToDate) {
+                                            orderMap.replace(key, order);
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
+                    page++;
+                } while (!pageResult.isLast());
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+            }
         }
     }
 
     public List<TourOrder> getAllTourOrders() {
         List<TourOrder> result;
         synchronized (lock) {
-            result = new ArrayList<>(orderList); // safe copy
+            // Map Flatten to list
+            result = tourMap.values()
+                    .stream()
+                    .flatMap(List::stream)
+                    .toList();
         }
         return result.stream()
                 .filter(Objects::nonNull)
@@ -89,31 +160,34 @@ public class TourOrderService {
 
 
     public TourOrder getOrderByFullValue(String userId, String instanceId) {
-        List<TourOrder> result = getAllTourOrders();
         if (instanceId == null || instanceId.isBlank() || userId == null || userId.isBlank()) {
             return null;
         } else {
-            String iKey = instanceId.toLowerCase();
-            String uKey = userId.toLowerCase();
-            result = result.stream()
-                    .filter(
-                            order -> order != null
-                                    && order.getInstanceId().toLowerCase().equals(iKey)
-                                    && order.getUsername().toLowerCase().equals(uKey)
-                    )
-                    .toList();
-            if (!result.isEmpty()) {
-                return result.get(0);
-            } else {
-                TourOrder order = tourOrderRepository.findTop1ByUsernameAndInstanceIdOrderByCreatedAtDesc(userId, instanceId);
+            String key = keyGenerate(userId, instanceId);
+            TourOrder order = orderMap.get(key);
+            if (order == null) {
+                order = tourOrderRepository.findTop1ByUsernameAndInstanceIdOrderByCreatedAtDesc(userId, instanceId);
                 if (order != null) {
-                    String key = keyGenerate(order.getUsername(), order.getInstanceId());
-                    if (existingKeys.add(key)) { // only add if not already present
-                        orderList.add(order);
+                    if (!orderMap.containsKey(key)) {
+                        orderMap.put(key, order);
+                    } else {
+                        TourOrder currOrder = orderMap.get(key);
+                        if (currOrder != null) {
+                            if (!Objects.equals(order.getStatus(), currOrder.getStatus()) && order.getStatus() != null) {
+                                boolean upToDate = switch (order.getStatus()) {
+                                    case "accept", "reject" -> !Objects.equals(currOrder.getStatus(), "pending");
+                                    default -> true;
+                                };
+
+                                if (!upToDate) {
+                                    orderMap.replace(key, order);
+                                }
+                            }
+                        }
                     }
                 }
-                return order;
             }
+            return order;
         }
     }
 
