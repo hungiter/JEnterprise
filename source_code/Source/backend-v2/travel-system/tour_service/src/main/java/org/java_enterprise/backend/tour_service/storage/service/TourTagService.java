@@ -1,15 +1,18 @@
 package org.java_enterprise.backend.tour_service.storage.service;
 
 import jakarta.annotation.PostConstruct;
+import org.java_enterprise.backend.tour_service.storage.dto.TourInstanceSummaryDTO;
 import org.java_enterprise.backend.tour_service.storage.model.Tag;
 import org.java_enterprise.backend.tour_service.storage.repository.TourTagRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 @Service
 public class TourTagService {
@@ -18,10 +21,10 @@ public class TourTagService {
 
     private final List<String> tagList = new ArrayList<>();
     private final Object lock = new Object();
-    private volatile boolean initialized = false;
 
-    @PostConstruct
-    public void init() {
+    @EventListener(ApplicationReadyEvent.class)
+    @Async
+    public void initAsync() {
         fetchAllAndStore();
     }
 
@@ -41,12 +44,11 @@ public class TourTagService {
                 tagList.addAll(values);
                 page++;
             } while (!pageResult.isLast());
-            initialized = true;
         }
     }
 
     public List<String> getTourTagList(boolean refreshFromDb) {
-        if (refreshFromDb || !initialized) {
+        if (refreshFromDb) {
             fetchAllAndStore();
         }
 

@@ -1,10 +1,10 @@
 package org.java_enterprise.backend.tour_service.storage.controller;
 
+import org.java_enterprise.backend.tour_service.storage.data.*;
 import org.java_enterprise.backend.tour_service.storage.dto.TourDTO;
 import org.java_enterprise.backend.tour_service.storage.dto.TourInstanceDTO;
 import org.java_enterprise.backend.tour_service.storage.dto.TourInstanceSummaryDTO;
 import org.java_enterprise.backend.tour_service.storage.dto.TourSummaryDTO;
-import org.java_enterprise.backend.tour_service.storage.model.SummaryToursRequest;
 import org.java_enterprise.backend.tour_service.storage.model.Tour;
 import org.java_enterprise.backend.tour_service.storage.model.TourEngagement;
 import org.java_enterprise.backend.tour_service.storage.model.TourOrder;
@@ -12,7 +12,6 @@ import org.java_enterprise.backend.tour_service.storage.service.TourService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -55,7 +54,7 @@ public class TourController {
     }
 
     @PostMapping("/summary_tours")
-    public List<TourSummaryDTO> getSummaryTours(@RequestBody SummaryToursRequest request) {
+    public List<TourSummaryDTO> getSummaryTours(@RequestBody SummaryToursRequestDTO request) {
         return tourService.getTourSummeries(request.getTour_codes());
     }
 
@@ -90,26 +89,29 @@ public class TourController {
 
     @GetMapping("/engagement/find")
     public List<TourEngagement> findEngagements(
-            @RequestParam(required = false) String userId,
+            @RequestParam(required = false) String username,
             @RequestParam(required = false) String tourId
     ) {
-        if (userId != null && tourId != null) {
-            return List.of(tourService.getEngagementByFullValue(userId, tourId));
-        }
+        if (username != null && tourId != null) {
+            TourEngagement engagement = tourService.getEngagementByFullValue(username, tourId);
+            if (engagement != null) {
+                return List.of(engagement);
+            }
+        } else {
+            if (tourId != null) {
+                return tourService.getAllEngagementsByTour(tourId);
+            }
 
-        if (tourId != null) {
-            return tourService.getAllEngagementsByTour(tourId);
-        }
-
-        if (userId != null) {
-            return tourService.getAllEngagementsByUser(userId);
+            if (username != null) {
+                return tourService.getAllEngagementsByUser(username);
+            }
         }
 
         return Collections.emptyList();
     }
 
     @PutMapping("/engagement")
-    public TourEngagement updateEngagement(TourEngagement newValue) {
+    public TourEngagement updateEngagement(@RequestBody TourEngagement newValue) {
         return tourService.updateEngagement(newValue);
     }
 
@@ -121,26 +123,37 @@ public class TourController {
 
     @GetMapping("/order/find")
     public List<TourOrder> findOrders(
-            @RequestParam(required = false) String userId,
+            @RequestParam(required = false) String username,
             @RequestParam(required = false) String instanceId
     ) {
-        if (userId != null && instanceId != null) {
-            return List.of(tourService.getOrderByFullValue(userId, instanceId));
+        if (username != null && instanceId != null) {
+            return List.of(tourService.getOrderByFullValue(username, instanceId));
         }
 
         if (instanceId != null) {
             return tourService.getAllOrdersByInstance(instanceId);
         }
 
-        if (userId != null) {
-            return tourService.getAllOrdersByUser(userId);
+        if (username != null) {
+            return tourService.getAllOrdersByUser(username);
         }
 
         return Collections.emptyList();
     }
 
-    @PutMapping("/order")
-    public TourOrder updateOrder(TourOrder newValue) {
-        return tourService.updateOrder(newValue);
+    // ORDER CONTROLLER ===================================
+    @PostMapping("/order/create")
+    public OrderCreateReponseDTO createOrder(@RequestBody OrderCreateRequestDTO request) {
+        return tourService.createOrder(request);
+    }
+
+    @PutMapping("/order/accept")
+    public OrderPaidReponseDTO acceptOrder(@RequestBody OrderPaidRequestDTO request) {
+        return tourService.acceptOrder(request);
+    }
+
+    @PutMapping("/order/reject")
+    public OrderPaidReponseDTO rejectOrder(@RequestBody OrderPaidRequestDTO request) {
+        return tourService.rejectOrder(request);
     }
 }

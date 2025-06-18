@@ -17,13 +17,13 @@ public class TourEngagement {
 
     @Field("tourId")
     private String tourId;
-    @Field("userId")
-    private String userId;
+    @Field("username")
+    private String username;
     @Field("sessionId")
     private String sessionId; // optional for guest
     @Field("status")
     private Integer status = 0; // -1: Dislike, 0: View, 1: Like
-    @Field("lastTime")
-    private long lastTimestamp;
+    @Field("lastAccess")
+    private long lastAccess;
 }
 

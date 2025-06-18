@@ -4,8 +4,11 @@ import jakarta.annotation.PostConstruct;
 import org.java_enterprise.backend.tour_service.storage.model.TourOrder;
 import org.java_enterprise.backend.tour_service.storage.repository.TourOrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -18,10 +21,11 @@ public class TourOrderService {
     Set<String> existingKeys = new HashSet<>();
     private final List<TourOrder> orderList = new ArrayList<>();
     private final Object lock = new Object();
-    private volatile boolean initialized = false;
 
-    @PostConstruct
-    public void init() {
+
+    @EventListener(ApplicationReadyEvent.class)
+    @Async
+    public void initAsync() {
         fetchAllAndStore();
     }
 
@@ -39,14 +43,13 @@ public class TourOrderService {
             do {
                 pageResult = tourOrderRepository.findAll(PageRequest.of(page, size));
                 for (TourOrder order : pageResult.getContent()) {
-                    String key = keyGenerate(order.getUserId(), order.getInstanceId());
+                    String key = keyGenerate(order.getUsername(), order.getInstanceId());
                     if (existingKeys.add(key)) { // only add if not already present
                         orderList.add(order);
                     }
                 }
                 page++;
             } while (!pageResult.isLast());
-            initialized = true;
         }
     }
 
@@ -68,7 +71,7 @@ public class TourOrderService {
 
         String keyword = userId.toLowerCase();
         return result.stream()
-                .filter(order -> order != null && order.getUserId().toLowerCase().equals(keyword))
+                .filter(order -> order != null && order.getUsername().toLowerCase().equals(keyword))
                 .toList();
     }
 
@@ -96,15 +99,15 @@ public class TourOrderService {
                     .filter(
                             order -> order != null
                                     && order.getInstanceId().toLowerCase().equals(iKey)
-                                    && order.getUserId().toLowerCase().equals(uKey)
+                                    && order.getUsername().toLowerCase().equals(uKey)
                     )
                     .toList();
             if (!result.isEmpty()) {
                 return result.get(0);
             } else {
-                TourOrder order = tourOrderRepository.findTop1ByUserIdAndInstanceIdOrderByCreatedAtDesc(userId, instanceId);
+                TourOrder order = tourOrderRepository.findTop1ByUsernameAndInstanceIdOrderByCreatedAtDesc(userId, instanceId);
                 if (order != null) {
-                    String key = keyGenerate(order.getUserId(), order.getInstanceId());
+                    String key = keyGenerate(order.getUsername(), order.getInstanceId());
                     if (existingKeys.add(key)) { // only add if not already present
                         orderList.add(order);
                     }
@@ -115,20 +118,15 @@ public class TourOrderService {
     }
 
     public TourOrder updateOrder(TourOrder newValue) {
-        TourOrder existing = getOrderByFullValue(newValue.getUserId(), newValue.getInstanceId());
+        TourOrder existing = getOrderByFullValue(newValue.getUsername(), newValue.getInstanceId());
         if (existing != null) {
-            existing.setUserId(newValue.getUserId());
-            existing.setInstanceId(newValue.getInstanceId());
             existing.setStatus(newValue.getStatus());
             existing.setTotalTicket(newValue.getTotalTicket());
-
-            existing.setCreateAt(System.currentTimeMillis());
-            existing.setValidateAt(System.currentTimeMillis());
+            existing.setUpdatedAt(System.currentTimeMillis());
             tourOrderRepository.save(existing);
             return existing;
         } else {
-            newValue.setCreateAt(System.currentTimeMillis());
-            newValue.setValidateAt(System.currentTimeMillis());
+            newValue.setCreatedAt(System.currentTimeMillis());
             tourOrderRepository.save(newValue);
             return newValue;
         }

@@ -1,5 +1,9 @@
 package org.java_enterprise.backend.tour_service.storage.service;
 
+import org.java_enterprise.backend.tour_service.storage.data.OrderPaidReponseDTO;
+import org.java_enterprise.backend.tour_service.storage.data.OrderPaidRequestDTO;
+import org.java_enterprise.backend.tour_service.storage.data.OrderCreateReponseDTO;
+import org.java_enterprise.backend.tour_service.storage.data.OrderCreateRequestDTO;
 import org.java_enterprise.backend.tour_service.storage.dto.TourDTO;
 import org.java_enterprise.backend.tour_service.storage.dto.TourInstanceDTO;
 import org.java_enterprise.backend.tour_service.storage.dto.TourInstanceSummaryDTO;
@@ -14,6 +18,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -165,6 +170,88 @@ public class TourService {
     public TourOrder getOrderByFullValue(String userId, String instanceId) {
         return tourOrderService.getOrderByFullValue(userId, instanceId);
     }
+
+    public OrderCreateReponseDTO createOrder(OrderCreateRequestDTO request) {
+        // Check input
+        if (request.getUserId().isEmpty() || request.getInstanceId().isEmpty()) {
+            return OrderCreateReponseDTO.builder().success(false).message("Thiếu data đầu vào!").build();
+        }
+
+        // Check instanceId existed
+        Optional<TourInstanceDTO> instanceInfo = getInstanceInfo(request.getInstanceId());
+        if (instanceInfo.isEmpty()) {
+            return OrderCreateReponseDTO.builder().success(false).message("Không tìm thấy tour instance!").build();
+        }
+
+        // Check existed
+        TourOrder existing = getOrderByFullValue(request.getUserId(), request.getInstanceId());
+        if (existing != null) {
+            return OrderCreateReponseDTO.builder().success(false).message("Đơn này đã tồn tại.").build();
+        }
+
+        TourOrder order = new TourOrder();
+        order.setUsername(request.getUserId());
+        order.setInstanceId(request.getInstanceId());
+        order.setTotalTicket(request.getTotalTicket());
+        order.setStatus("pending"); // Đặt -> Thanh toán/Từ chối
+        TourOrder createdOrder = updateOrder(order);
+        return OrderCreateReponseDTO.builder().success(true).tourOrder(createdOrder).message("Tạo đơn hàng thành công").build();
+    }
+
+    public OrderPaidReponseDTO acceptOrder(OrderPaidRequestDTO request) {
+        // Check input
+        if (request.getUsername().isEmpty() || request.getInstanceId().isEmpty()) {
+            return OrderPaidReponseDTO.builder().success(false).message("Thiếu data đầu vào!").build();
+        }
+
+        // Check instanceId existed
+        Optional<TourInstanceDTO> instanceInfo = getInstanceInfo(request.getInstanceId());
+        if (instanceInfo.isEmpty()) {
+            return OrderPaidReponseDTO.builder().success(false).message("Không tìm thấy tour instance!").build();
+        }
+
+        // Check existed
+        TourOrder existing = getOrderByFullValue(request.getUsername(), request.getInstanceId());
+        if (existing != null) {
+            if (!Objects.equals(existing.getStatus(), "pending")) {
+                return OrderPaidReponseDTO.builder().success(false).message("Không thể cập nhật trạng thái.").build();
+            }
+        } else {
+            return OrderPaidReponseDTO.builder().success(false).message("Đơn hàng không tồn tại.").build();
+        }
+
+        existing.setStatus("paid"); // Thanh toán
+        TourOrder createdOrder = updateOrder(existing);
+        return OrderPaidReponseDTO.builder().success(true).tourOrder(createdOrder).message("Xác nhận thanh toán").build();
+    }
+
+    public OrderPaidReponseDTO rejectOrder(OrderPaidRequestDTO request) {
+        // Check input
+        if (request.getUsername().isEmpty() || request.getInstanceId().isEmpty()) {
+            return OrderPaidReponseDTO.builder().success(false).message("Thiếu data đầu vào!").build();
+        }
+
+        // Check instanceId existed
+        Optional<TourInstanceDTO> instanceInfo = getInstanceInfo(request.getInstanceId());
+        if (instanceInfo.isEmpty()) {
+            return OrderPaidReponseDTO.builder().success(false).message("Không tìm thấy tour instance!").build();
+        }
+
+        // Check existed
+        TourOrder existing = getOrderByFullValue(request.getUsername(), request.getInstanceId());
+        if (existing != null) {
+            if (!Objects.equals(existing.getStatus(), "pending")) {
+                return OrderPaidReponseDTO.builder().success(false).message("Không thể cập nhật trạng thái.").build();
+            }
+        } else {
+            return OrderPaidReponseDTO.builder().success(false).message("Đơn hàng không tồn tại.").build();
+        }
+
+        existing.setStatus("reject"); // Từ chối
+        TourOrder createdOrder = updateOrder(existing);
+        return OrderPaidReponseDTO.builder().success(true).tourOrder(createdOrder).message("Từ chối thanh toán").build();
+    }
+
 
     public TourOrder updateOrder(TourOrder newValue) {
         return tourOrderService.updateOrder(newValue);

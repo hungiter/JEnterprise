@@ -16,15 +16,14 @@ public class TourOrder {
     private String id;
     @Field("instanceId")
     private String instanceId;
-    @Field("userId")
-    private String userId;
+    @Field("username")
+    private String username;
     @Field("totalTicket")
     private Integer totalTicket; // default 1
     @Field("status")
     private String status; // pending, apply, deny (full)
     @Field("createdAt")
-    private long createAt;
-    @Field("validateAt")
-    private long validateAt;
-
+    private long createdAt;
+    @Field("updatedAt")
+    private long updatedAt;
 }

@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface TourInstanceRepository extends MongoRepository<TourInstance, String> {
-    List<TourInstance> findByStartDateGreaterThanEqualAndStatus(String startDate, String status);
+    List<TourInstance> findByTourId(String tourId);
     Optional<TourInstance> findByInstanceId(String instanceId);
 }
 

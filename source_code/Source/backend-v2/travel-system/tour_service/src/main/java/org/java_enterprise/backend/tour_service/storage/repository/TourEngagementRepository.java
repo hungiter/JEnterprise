@@ -8,11 +8,11 @@ import java.util.List;
 import java.util.Optional;
 
 public interface TourEngagementRepository extends MongoRepository<TourEngagement, String> {
-    List<TourEngagement> findByUserId(String userId);
+    List<TourEngagement> findByUsername(String username);
 
     List<TourEngagement> findBySessionId(String sessionId);
 
-    TourEngagement findTop1ByUserIdAndTourIdOrderByCreatedAtDesc(String userId, String tourId);
+    TourEngagement findTop1ByUsernameAndTourIdOrderByLastAccessDesc(String username, String tourId);
 
 }
 
