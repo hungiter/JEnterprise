@@ -36,7 +36,7 @@ export const createPaymentOrder = async (tour: Tour, user: UserInfo): Promise<Cr
             console.log(error.response?.data?.error)
             return { "success": false, "message": `${error.response?.status}` }
         } else {
-            console.log(error)
+            console.error(error)
             return { "success": false, "message": `${error}` }
         }
     }

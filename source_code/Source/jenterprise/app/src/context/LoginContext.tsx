@@ -1,9 +1,10 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import type { ReactNode } from "react";
-import { getCookie } from "../services/cookies/Cookies";
+import { getCookie, clearCookie } from "../services/cookies/Cookies";
 import type { LoginResponse, UserInfo } from "../dtos/user.dto";
 import api from "../services/api_info";
 import { AxiosError } from "axios";
+import { useNavigate } from "react-router-dom";
 
 interface LoginContextProps {
     showLogin: boolean;
@@ -13,6 +14,8 @@ interface LoginContextProps {
     checkLoginAndPrompt: () => void;
     onProcess: boolean;
     setOnProcess: (value: boolean) => void;
+    logout: () => Promise<void>;
+    isLoggingOut: boolean;
 }
 
 const LoginContext = createContext<LoginContextProps | undefined>(undefined);
@@ -59,6 +62,36 @@ export const login = async (username: string, password: string): Promise<LoginRe
     }
 };
 
+export const logout = async (): Promise<{ success: boolean; message: string }> => {
+    try {
+        // Call backend logout API
+        await api.post(`auth/login`);
+
+        // Clear local data on success
+        clearCookie("accessToken");
+
+        return {
+            success: true,
+            message: "Logged out successfully"
+        };
+    } catch (error: unknown) {
+        console.error("Logout error:", error);
+        // Even if backend fails, clear local data for security
+        clearCookie("accessToken");
+
+        if (error instanceof AxiosError) {
+            return {
+                success: false,
+                message: `${error.message}`
+            }
+        }
+        return {
+            success: false,
+            message: `${error}`
+        }
+    }
+};
+
 const saveUserInfoToCookie = (userInfo: UserInfo) => {
     const cookieName = `accessToken`;
     const cookieValue = encodeURIComponent(JSON.stringify(userInfo));
@@ -88,11 +121,12 @@ export const getUserInfoFromCookie = (): UserInfo | null => {
     return null;
 };
 
-
 export const LoginProvider = ({ children }: { children: ReactNode }) => {
     const [showLogin, setShowLogin] = useState(false);
     const [onProcess, setOnProcess] = useState(false);
     const [token, setToken] = useState<string | null>(null);
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const navigate = useNavigate();
 
     useEffect(() => {
         setToken(getCookie("accessToken"))
@@ -103,8 +137,33 @@ export const LoginProvider = ({ children }: { children: ReactNode }) => {
         if (!token) setShowLogin(true);
     };
 
+    const handleLogout = useCallback(async () => {
+        setIsLoggingOut(true);
+        try {
+            const result = await logout();
+            if (result.success) {
+                setToken(null);
+                navigate("/tours");
+            }
+        } catch (error) {
+            console.error("Logout error:", error);
+        } finally {
+            setIsLoggingOut(false);
+        }
+    }, [navigate]);
+
     return (
-        <LoginContext.Provider value={{ showLogin, setShowLogin, token, setToken, checkLoginAndPrompt, onProcess, setOnProcess }}>
+        <LoginContext.Provider value={{
+            showLogin,
+            setShowLogin,
+            token,
+            setToken,
+            checkLoginAndPrompt,
+            onProcess,
+            setOnProcess,
+            logout: handleLogout,
+            isLoggingOut
+        }}>
             {children}
         </LoginContext.Provider>
     );

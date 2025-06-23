@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { useLogin } from "../context/LoginContext";
-import { clearCookie } from "../services/cookies/Cookies";
 import SearchModal from "./header/SearchModal";
 import { SearchProvider } from "../context/SearchContext";
 import { memo, useCallback } from "react";
@@ -10,18 +9,11 @@ interface HeaderProps {
 }
 
 const Header = memo(function Header() {
-    const { setShowLogin, token, setToken } = useLogin();
+    const { setShowLogin, token, logout, isLoggingOut } = useLogin();
 
-    const logout = useCallback(async () => {
-        try {
-            clearCookie("accessToken");
-            setToken(null);
-        } catch (error) {
-            console.log(error);
-        } finally {
-            console.log("Logged out");
-        }
-    }, [setToken]);
+    const handleLogout = useCallback(async () => {
+        await logout();
+    }, [logout]);
 
     const handleLoginClick = useCallback(() => {
         setShowLogin(true);
@@ -37,10 +29,15 @@ const Header = memo(function Header() {
 
                     {token ? (
                         <button
-                            onClick={logout}
-                            className="bg-yellow-400 hover:bg-red-500 text-white px-4 py-1.5 rounded transition cursor-pointer"
+                            onClick={handleLogout}
+                            disabled={isLoggingOut}
+                            className={`px-4 py-1.5 rounded transition cursor-pointer ${
+                                isLoggingOut 
+                                    ? 'bg-gray-400 cursor-not-allowed text-white' 
+                                    : 'bg-yellow-400 hover:bg-red-500 text-white'
+                            }`}
                         >
-                            Đăng xuất
+                            {isLoggingOut ? "Đang đăng xuất..." : "Đăng xuất"}
                         </button>
                     ) : (
                         <button

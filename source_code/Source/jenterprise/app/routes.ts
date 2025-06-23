@@ -9,6 +9,8 @@ import {
 export default [
     index("./src/pages/Home/HomePage.tsx"), // Root route ("/")
     // index("./src/pages/Tour/TourListPage.tsx"), // Root route ("/")
+    // Access denied page
+    route("access-denied", "./src/pages/AccessDeniedPage.tsx"),
 
     layout("./src/layout/mainLayout.tsx", [
         // Tour Pages
@@ -25,6 +27,17 @@ export default [
         route("termofuse", "./src/pages/XXX/TermOfUsePage.tsx"),
         route("help", "./src/pages/XXX/HelpPage.tsx"),
         route("personaldatapolicy", "./src/pages/XXX/PersonalDataPolicyPage.tsx"),
+    ]),
+
+    // Admin layout with separate header
+    layout("./src/layout/adminLayout.tsx", [
+        route("admin", "./src/pages/Admin/AdminDashboardPage.tsx"),
+        route("admin/users", "./src/pages/Admin/UserManagementPage.tsx"),
+        route("admin/users/add", "./src/pages/Admin/AddUserPage.tsx"),
+        route("admin/tours", "./src/pages/Admin/TourManagementPage.tsx"),
+        route("admin/tours/add", "./src/pages/Admin/AddTourPage.tsx"),
+        // Add more admin routes here as needed
+        // route("admin/settings", "./src/pages/Admin/SettingsPage.tsx"),
     ]),
 
     route("*", "./src/pages/NotFoundPage.tsx")
