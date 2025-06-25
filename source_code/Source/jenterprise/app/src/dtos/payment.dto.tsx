@@ -54,9 +54,6 @@ export interface VnPayTransaction {
     status: string
 }
 
-
-
-
 export const parseVnpayUrl = (url: string): VnpayPaymentRequest | null => {
     const params = new URLSearchParams(new URL(url).search);
 

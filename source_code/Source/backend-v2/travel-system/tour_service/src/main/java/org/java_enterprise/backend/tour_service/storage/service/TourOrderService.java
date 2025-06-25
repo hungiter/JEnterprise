@@ -11,6 +11,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -23,7 +24,6 @@ public class TourOrderService {
     private final Map<String, List<TourOrder>> tourMap = new HashMap<>();
     private final Map<String, TourOrder> orderMap = new HashMap<>();
     private final Object lock = new Object();
-
 
     @Async("taskExecutor")
     @EventListener(ApplicationReadyEvent.class)
@@ -67,16 +67,16 @@ public class TourOrderService {
                         String entryKey = entry.getKey();
                         List<TourOrder> entryValue = entry.getValue();
 
-                        if (tourMap.containsKey(entryKey)) {
+                        if (!tourMap.containsKey(entryKey)) {
                             tourMap.put(entryKey, entryValue);
                         } else {
                             List<TourOrder> currOrders = tourMap.get(entryKey);
                             for (int i = 0; i < entryValue.size(); i++) {
                                 TourOrder order = entryValue.get(i);
                                 boolean exists = currOrders.stream()
-                                        .anyMatch(oldValue ->
-                                                Objects.equals(oldValue.getInstanceId(), order.getInstanceId())
-                                                        && Objects.equals(oldValue.getUsername(), order.getUsername()));
+                                        .anyMatch(oldValue -> Objects.equals(oldValue.getInstanceId(),
+                                                order.getInstanceId())
+                                                && Objects.equals(oldValue.getUsername(), order.getUsername()));
                                 try {
                                     if (!exists) {
                                         currOrders.add(order);
@@ -97,10 +97,11 @@ public class TourOrderService {
                             } else {
                                 TourOrder currOrder = orderMap.get(key);
                                 if (currOrder != null) {
-                                    if (!Objects.equals(order.getStatus(), currOrder.getStatus()) && order.getStatus() != null) {
+                                    if (!Objects.equals(order.getStatus(), currOrder.getStatus())
+                                            && order.getStatus() != null) {
                                         boolean upToDate = switch (order.getStatus()) {
                                             case "accept", "reject" ->
-                                                    !Objects.equals(currOrder.getStatus(), "pending");
+                                                !Objects.equals(currOrder.getStatus(), "pending");
                                             default -> true;
                                         };
 
@@ -158,7 +159,6 @@ public class TourOrderService {
                 .toList();
     }
 
-
     public TourOrder getOrderByFullValue(String userId, String instanceId) {
         if (instanceId == null || instanceId.isBlank() || userId == null || userId.isBlank()) {
             return null;
@@ -173,7 +173,8 @@ public class TourOrderService {
                     } else {
                         TourOrder currOrder = orderMap.get(key);
                         if (currOrder != null) {
-                            if (!Objects.equals(order.getStatus(), currOrder.getStatus()) && order.getStatus() != null) {
+                            if (!Objects.equals(order.getStatus(), currOrder.getStatus())
+                                    && order.getStatus() != null) {
                                 boolean upToDate = switch (order.getStatus()) {
                                     case "accept", "reject" -> !Objects.equals(currOrder.getStatus(), "pending");
                                     default -> true;
@@ -196,11 +197,12 @@ public class TourOrderService {
         if (existing != null) {
             existing.setStatus(newValue.getStatus());
             existing.setTotalTicket(newValue.getTotalTicket());
-            existing.setUpdatedAt(System.currentTimeMillis());
+            existing.setTicketPrice(newValue.getTicketPrice());
+            existing.setUpdatedAt(LocalDateTime.now());
             tourOrderRepository.save(existing);
             return existing;
         } else {
-            newValue.setCreatedAt(System.currentTimeMillis());
+            newValue.setCreatedAt(LocalDateTime.now());
             tourOrderRepository.save(newValue);
             return newValue;
         }

@@ -36,6 +36,7 @@ export default [
         route("admin/users/add", "./src/pages/Admin/AddUserPage.tsx"),
         route("admin/tours", "./src/pages/Admin/TourManagementPage.tsx"),
         route("admin/tours/add", "./src/pages/Admin/AddTourPage.tsx"),
+        route("admin/orders", "./src/pages/Admin/OrderManagementPage.tsx"),
         // Add more admin routes here as needed
         // route("admin/settings", "./src/pages/Admin/SettingsPage.tsx"),
     ]),

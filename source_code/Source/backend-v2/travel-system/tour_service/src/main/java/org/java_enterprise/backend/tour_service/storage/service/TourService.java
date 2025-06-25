@@ -190,6 +190,7 @@ public class TourService {
         order.setUsername(request.getUsername());
         order.setInstanceId(request.getInstanceId());
         order.setTotalTicket(request.getTotalTicket());
+        order.setTicketPrice(request.getTicketPrice());
         order.setStatus("pending"); // Đặt -> Thanh toán/Từ chối
         TourOrder createdOrder = updateOrder(order);
         return OrderCreateReponseDTO.builder().success(true).tourOrder(createdOrder).message("Tạo đơn hàng thành công").build();

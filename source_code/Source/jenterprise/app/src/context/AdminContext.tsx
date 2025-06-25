@@ -115,9 +115,10 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => {
         setIsLoading(true);
         // const hasAccess = checkAdminAccess();
+        // LOOKING FOR THIS TEST DATA BEFORE RELEASE
         const hasAccess = true;
         setIsAdmin(hasAccess);
-        setUserInfo(getUserInfoFromCookie());
+        setUserInfo({ "username": "admin", "email": "admin@gmail.com", "role": "admin", "token": "1234567890" });
         setIsLoading(false);
 
         // If trying to access admin routes without proper role, redirect

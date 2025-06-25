@@ -11,16 +11,24 @@ function generateRandomIP(): string {
         .join(".");
 }
 
-export const createPaymentOrder = async (tour: Tour, user: UserInfo): Promise<CreatePaymentUrlResponse> => {
+export const createPaymentOrder = async (
+    tour: Tour,
+    user: UserInfo,
+    ticketQuantity: number = 1,
+    totalAmount?: number
+): Promise<CreatePaymentUrlResponse> => {
     // const ip = await getClientIp()
     const ip = generateRandomIP()
 
     if (!ip) return { "success": false, "message": "Không tìm thấy địa chỉ IP người dùng.", "url": "" }
 
+    // Tính tổng tiền nếu không được truyền vào
+    const finalTotalAmount = totalAmount || (tour.priceValue * ticketQuantity);
+
     const paymentInfo = {
         "orderType": "billpayment",
-        "amount": tour.priceValue,
-        "orderDescription": `Thanh toán phí đặt tour ${tour.tourCode}`,
+        "amount": finalTotalAmount,
+        "orderDescription": `Thanh toán phí đặt tour ${tour.tourCode} - ${ticketQuantity} vé`,
         "name": `${user.username}`,
         "tourCode": tour.tourCode,
         "ip": ip

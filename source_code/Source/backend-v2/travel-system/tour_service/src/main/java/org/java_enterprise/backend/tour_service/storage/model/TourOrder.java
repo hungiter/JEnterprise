@@ -6,6 +6,7 @@ import lombok.Setter;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
+import java.time.LocalDateTime;
 
 @Document(collection = "tour_orders")
 @Getter
@@ -25,7 +26,7 @@ public class TourOrder {
     @Field("status")
     private String status; // pending, apply, deny (full)
     @Field("createdAt")
-    private long createdAt;
+    private LocalDateTime createdAt;
     @Field("updatedAt")
-    private long updatedAt;
+    private LocalDateTime updatedAt;
 }
