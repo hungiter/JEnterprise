@@ -6,11 +6,11 @@ import { IoMdReturnLeft } from "react-icons/io";
 
 // Mock data for demonstration
 const mockUsers = [
-    { id: 1, username: "admin", email: "admin@travel.com", role: "ADMIN", status: "active", lastLogin: "2024-01-15" },
-    { id: 2, username: "guider1", email: "guider1@travel.com", role: "GUIDER", status: "active", lastLogin: "2024-01-14" },
-    { id: 3, username: "guider2", email: "guider2@travel.com", role: "GUIDER", status: "active", lastLogin: "2024-01-13" },
-    { id: 4, username: "user1", email: "user1@travel.com", role: "USER", status: "inactive", lastLogin: "2024-01-10" },
-    { id: 5, username: "user2", email: "user2@travel.com", role: "USER", status: "active", lastLogin: "2024-01-12" },
+    { id: 1, username: "admin", email: "admin@travel.com", role: "Admin", status: "active", lastLogin: "2024-01-15" },
+    { id: 2, username: "guider1", email: "guider1@travel.com", role: "Guider", status: "active", lastLogin: "2024-01-14" },
+    { id: 3, username: "guider2", email: "guider2@travel.com", role: "Guider", status: "active", lastLogin: "2024-01-13" },
+    { id: 4, username: "user1", email: "user1@travel.com", role: "User", status: "inactive", lastLogin: "2024-01-10" },
+    { id: 5, username: "user2", email: "user2@travel.com", role: "User", status: "active", lastLogin: "2024-01-12" },
 ];
 
 export default function UserManagementPage() {
@@ -32,9 +32,9 @@ export default function UserManagementPage() {
 
     const getRoleBadgeColor = (role: string) => {
         switch (role) {
-            case "ADMIN": return "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg";
-            case "GUIDER": return "bg-gradient-to-r from-green-500 to-blue-500 text-white shadow-lg";
-            case "USER": return "bg-gradient-to-r from-gray-500 to-gray-600 text-white shadow-lg";
+            case "Admin": return "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg";
+            case "Guider": return "bg-gradient-to-r from-green-500 to-blue-500 text-white shadow-lg";
+            case "User": return "bg-gradient-to-r from-gray-500 to-gray-600 text-white shadow-lg";
             default: return "bg-gradient-to-r from-gray-500 to-gray-600 text-white shadow-lg";
         }
     };
@@ -47,9 +47,9 @@ export default function UserManagementPage() {
 
     const getRoleIcon = (role: string) => {
         switch (role) {
-            case "ADMIN": return <FaCrown className="w-4 h-4" />;
-            case "GUIDER": return <FaStar className="w-4 h-4" />;
-            case "USER": return <FaUsers className="w-4 h-4" />;
+            case "Admin": return <FaCrown className="w-4 h-4" />;
+            case "Guider": return <FaStar className="w-4 h-4" />;
+            case "User": return <FaUsers className="w-4 h-4" />;
             default: return <FaUsers className="w-4 h-4" />;
         }
     };
@@ -120,9 +120,9 @@ export default function UserManagementPage() {
                             className="w-full pl-8 pr-4 py-4 text-black border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 bg-white/80 backdrop-blur-sm appearance-none cursor-pointer"
                         >
                             <option value="all">Tất cả vai trò</option>
-                            <option value="ADMIN">Admin</option>
-                            <option value="GUIDER">Guider</option>
-                            <option value="USER">User</option>
+                            <option value="Admin">Admin</option>
+                            <option value="Guider">Guider</option>
+                            <option value="User">User</option>
                         </select>
                     </div>
                     <div className="flex items-center justify-center md:justify-start">

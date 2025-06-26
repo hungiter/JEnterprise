@@ -5,6 +5,7 @@ import LoginImage from "@/src/assets/welcome_1.jpg";
 import RegisterImage from "@/src/assets/welcome_2.jpg";
 import { useLogin } from "@/src/context/LoginContext";
 import { login } from "@/src/context/LoginContext";
+import { useNavigate } from "react-router-dom";
 
 interface LoginRegisterModalProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ export default function LoginRegisterModal() {
   const { token, setToken } = useLogin();
   const [tab, setTab] = useState<"login" | "register">("login");
   const [hasMounted, setHasMounted] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
 
@@ -50,6 +52,11 @@ export default function LoginRegisterModal() {
       if (loginResult.data) {
         setToken(loginResult.data?.token)
         setShowLogin(false)
+
+        // Redirect admin to admin dashboard
+        if (loginResult.data?.role === "Admin") {
+          navigate("/admin");
+        }
       }
     } catch (error) {
       console.log(error);

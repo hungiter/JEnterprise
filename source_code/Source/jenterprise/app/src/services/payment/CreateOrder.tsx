@@ -14,6 +14,7 @@ function generateRandomIP(): string {
 export const createPaymentOrder = async (
     tour: Tour,
     user: UserInfo,
+    instanceId: string,
     ticketQuantity: number = 1,
     totalAmount?: number
 ): Promise<CreatePaymentUrlResponse> => {
@@ -25,12 +26,14 @@ export const createPaymentOrder = async (
     // Tính tổng tiền nếu không được truyền vào
     const finalTotalAmount = totalAmount || (tour.priceValue * ticketQuantity);
 
+    const finalTourCode = instanceId;
+
     const paymentInfo = {
         "orderType": "billpayment",
         "amount": finalTotalAmount,
-        "orderDescription": `Thanh toán phí đặt tour ${tour.tourCode} - ${ticketQuantity} vé`,
+        "orderDescription": `Thanh toán phí đặt tour ${finalTourCode} - ${ticketQuantity} vé`,
         "name": `${user.username}`,
-        "tourCode": tour.tourCode,
+        "tourCode": finalTourCode,
         "ip": ip
     }
     try {

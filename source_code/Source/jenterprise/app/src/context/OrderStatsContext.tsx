@@ -79,7 +79,7 @@ export const OrderStatsProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const acceptOrder = async (instanceId: string, username: string): Promise<OrderPaidResponse> => {
-        if (!userInfo || userInfo.role !== 'admin') {
+        if (!userInfo || userInfo.role !== 'Admin') {
             alert('Bạn cần đăng nhập với quyền admin để thực hiện thao tác này.');
             return { success: false, message: 'Bạn cần đăng nhập với quyền admin để thực hiện thao tác này.' };
         }
@@ -94,7 +94,7 @@ export const OrderStatsProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const rejectOrder = async (instanceId: string, username: string): Promise<OrderPaidResponse> => {
-        if (!userInfo || userInfo.role !== 'admin') {
+        if (!userInfo || userInfo.role !== 'Admin') {
             alert('Bạn cần đăng nhập với quyền admin để thực hiện thao tác này.');
             return { success: false, message: 'Bạn cần đăng nhập với quyền admin để thực hiện thao tác này.' };
         }

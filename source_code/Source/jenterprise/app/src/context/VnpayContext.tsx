@@ -35,16 +35,16 @@ export const useVnpay = () => {
 
 const removeVnpayCookie = (
     username: string,
-    tourCode: string
+    instanceId: string
 ) => {
-    const cookieName = `vnpay_request_${username}_${tourCode}`;
+    const cookieName = `vnpay_request_${username}_${instanceId}`;
     clearCookie(cookieName);
 }
 
 const saveVnpayRequestToCookie = (
     url: string,
     username: string,
-    tourCode: string
+    instanceId: string
 ): VnpayPaymentRequest | null => {
     const params = new URLSearchParams(new URL(url).search);
 
@@ -83,7 +83,7 @@ const saveVnpayRequestToCookie = (
             vnp_SecureHash
         };
 
-        const cookieName = `vnpay_request_${username}_${tourCode}`;
+        const cookieName = `vnpay_request_${username}_${instanceId}`;
         const cookieValue = JSON.stringify(request);
         document.cookie = `${cookieName}=${cookieValue}; path=/; max-age=86400`;
         return request;
@@ -118,9 +118,9 @@ const buildVnpayUrl = (
 
 export const getVnpayRequestFromCookie = (
     username: string,
-    tourCode: string
+    instanceId: string
 ): VnpayPaymentRequest | null => {
-    const cookieName = `vnpay_request_${username}_${tourCode}`;
+    const cookieName = `vnpay_request_${username}_${instanceId}`;
     const match = document.cookie.match(
         new RegExp(`(?:^|; )${cookieName.replace(/[-[\]/{}()*+?.\\^$|]/g, '\\$&')}=([^;]*)`)
     );
@@ -140,7 +140,7 @@ export const getVnpayRequestFromCookie = (
     return null;
 };
 
-export const createPaymentRequest = (tour: Tour): PaymentInfo | null => {
+export const createPaymentRequest = (tour: Tour, instanceId: string): PaymentInfo | null => {
     const userinfo = getUserInfoFromCookie();
     if (userinfo != null) {
         const generateRandomIP = (): string => {
@@ -152,9 +152,9 @@ export const createPaymentRequest = (tour: Tour): PaymentInfo | null => {
         return {
             "orderType": "billpayment",
             "amount": tour.priceValue,
-            "orderDescription": `Thanh toán phí đặt tour ${tour.tourCode}`,
+            "orderDescription": `Thanh toán phí đặt tour ${instanceId}`,
             "name": `${userinfo.username}`,
-            "tourCode": tour.tourCode,
+            "tourCode": instanceId,
             "ip": generateRandomIP()
         }
     } else {

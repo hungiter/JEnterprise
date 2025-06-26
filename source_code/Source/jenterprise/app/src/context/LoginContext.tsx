@@ -63,9 +63,12 @@ export const login = async (username: string, password: string): Promise<LoginRe
 };
 
 export const logout = async (): Promise<{ success: boolean; message: string }> => {
+    const token = getCookie("accessToken");
     try {
-        // Call backend logout API
-        await api.post(`auth/login`);
+        if (token) {
+            // Call backend logout API
+            await api.post(`auth/logout`);
+        }
 
         // Clear local data on success
         clearCookie("accessToken");
@@ -140,14 +143,17 @@ export const LoginProvider = ({ children }: { children: ReactNode }) => {
     const handleLogout = useCallback(async () => {
         setIsLoggingOut(true);
         try {
-            const result = await logout();
-            if (result.success) {
-                setToken(null);
-                navigate("/tours");
-            }
+            // const result = await logout();
+            // if (result.success) {
+            //     setToken(null);
+            //     navigate("/tours");
+            // }
+            await logout();
         } catch (error) {
             console.error("Logout error:", error);
         } finally {
+            setToken(null);
+            navigate("/tours");
             setIsLoggingOut(false);
         }
     }, [navigate]);

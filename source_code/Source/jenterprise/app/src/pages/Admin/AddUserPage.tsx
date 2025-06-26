@@ -112,18 +112,18 @@ export default function AddUserPage() {
 
     const getRoleIcon = (role: string) => {
         switch (role) {
-            case "ADMIN": return <FaCrown className="w-4 h-4" />;
-            case "GUIDER": return <FaStar className="w-4 h-4" />;
-            case "USER": return <FaUsers className="w-4 h-4" />;
+            case "Admin": return <FaCrown className="w-4 h-4" />;
+            case "Guider": return <FaStar className="w-4 h-4" />;
+            case "User": return <FaUsers className="w-4 h-4" />;
             default: return <FaUsers className="w-4 h-4" />;
         }
     };
 
     const getRoleColor = (role: string) => {
         switch (role) {
-            case "ADMIN": return "from-purple-500 to-pink-500";
-            case "GUIDER": return "from-green-500 to-blue-500";
-            case "USER": return "from-gray-500 to-gray-600";
+            case "Admin": return "from-purple-500 to-pink-500";
+            case "Guider": return "from-green-500 to-blue-500";
+            case "User": return "from-gray-500 to-gray-600";
             default: return "from-gray-500 to-gray-600";
         }
     };
@@ -174,9 +174,8 @@ export default function AddUserPage() {
                             id="username"
                             value={formData.username}
                             onChange={(e) => handleInputChange('username', e.target.value)}
-                            className={`w-full px-4 py-4 text-black border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 bg-white/80 backdrop-blur-sm ${
-                                errors.username ? 'border-red-500' : 'border-gray-200 group-hover:border-blue-300'
-                            }`}
+                            className={`w-full px-4 py-4 text-black border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 bg-white/80 backdrop-blur-sm ${errors.username ? 'border-red-500' : 'border-gray-200 group-hover:border-blue-300'
+                                }`}
                             placeholder="Nhập tên người dùng"
                         />
                         {errors.username && (
@@ -196,9 +195,8 @@ export default function AddUserPage() {
                             id="email"
                             value={formData.email}
                             onChange={(e) => handleInputChange('email', e.target.value)}
-                            className={`w-full px-4 py-4 text-black border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 bg-white/80 backdrop-blur-sm ${
-                                errors.email ? 'border-red-500' : 'border-gray-200 group-hover:border-blue-300'
-                            }`}
+                            className={`w-full px-4 py-4 text-black border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 bg-white/80 backdrop-blur-sm ${errors.email ? 'border-red-500' : 'border-gray-200 group-hover:border-blue-300'
+                                }`}
                             placeholder="Nhập địa chỉ email"
                         />
                         {errors.email && (
@@ -218,9 +216,8 @@ export default function AddUserPage() {
                             id="password"
                             value={formData.password}
                             onChange={(e) => handleInputChange('password', e.target.value)}
-                            className={`w-full px-4 py-4 text-black border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 bg-white/80 backdrop-blur-sm ${
-                                errors.password ? 'border-red-500' : 'border-gray-200 group-hover:border-blue-300'
-                            }`}
+                            className={`w-full px-4 py-4 text-black border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 bg-white/80 backdrop-blur-sm ${errors.password ? 'border-red-500' : 'border-gray-200 group-hover:border-blue-300'
+                                }`}
                             placeholder="Nhập mật khẩu"
                         />
                         {errors.password && (
@@ -240,9 +237,8 @@ export default function AddUserPage() {
                             id="confirmPassword"
                             value={formData.confirmPassword}
                             onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                            className={`w-full px-4 py-4 text-black border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 bg-white/80 backdrop-blur-sm ${
-                                errors.confirmPassword ? 'border-red-500' : 'border-gray-200 group-hover:border-blue-300'
-                            }`}
+                            className={`w-full px-4 py-4 text-black border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 bg-white/80 backdrop-blur-sm ${errors.confirmPassword ? 'border-red-500' : 'border-gray-200 group-hover:border-blue-300'
+                                }`}
                             placeholder="Nhập lại mật khẩu"
                         />
                         {errors.confirmPassword && (
@@ -264,9 +260,9 @@ export default function AddUserPage() {
                                 onChange={(e) => handleInputChange('role', e.target.value)}
                                 className="w-full px-4 py-4 text-black border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 bg-white/80 backdrop-blur-sm appearance-none cursor-pointer group-hover:border-blue-300"
                             >
-                                <option value="USER">User</option>
-                                <option value="GUIDER">Guider</option>
-                                <option value="ADMIN">Admin</option>
+                                <option value="User">User</option>
+                                <option value="Guider">Guider</option>
+                                <option value="Admin">Admin</option>
                             </select>
                             <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
                                 <div className={`p-2 rounded-lg bg-gradient-to-r ${getRoleColor(formData.role)} shadow-lg`}>
@@ -282,9 +278,9 @@ export default function AddUserPage() {
                                 <div>
                                     <div className="font-semibold text-gray-800 capitalize">{formData.role.toLowerCase()}</div>
                                     <div className="text-sm text-gray-600">
-                                        {formData.role === "ADMIN" && "Quản lý toàn bộ hệ thống"}
-                                        {formData.role === "GUIDER" && "Hướng dẫn viên du lịch"}
-                                        {formData.role === "USER" && "Người dùng thông thường"}
+                                        {formData.role === "Admin" && "Quản lý toàn bộ hệ thống"}
+                                        {formData.role === "Guider" && "Hướng dẫn viên du lịch"}
+                                        {formData.role === "User" && "Người dùng thông thường"}
                                     </div>
                                 </div>
                             </div>
@@ -303,11 +299,10 @@ export default function AddUserPage() {
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className={`flex items-center px-6 py-3 rounded-xl text-white transition-all duration-300 cursor-pointer transform hover:scale-105 ${
-                                isSubmitting
-                                    ? 'bg-gray-400 cursor-not-allowed'
-                                    : 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg hover:shadow-xl'
-                            }`}
+                            className={`flex items-center px-6 py-3 rounded-xl text-white transition-all duration-300 cursor-pointer transform hover:scale-105 ${isSubmitting
+                                ? 'bg-gray-400 cursor-not-allowed'
+                                : 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg hover:shadow-xl'
+                                }`}
                         >
                             {isSubmitting ? (
                                 <>

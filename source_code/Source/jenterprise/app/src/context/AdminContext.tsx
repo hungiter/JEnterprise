@@ -30,9 +30,9 @@ export const useAdmin = () => {
 
 // Admin role constants
 export const ADMIN_ROLES = {
-    SUPER_ADMIN: "SUPER_ADMIN",
-    ADMIN: "ADMIN",
-    MODERATOR: "MODERATOR"
+    ADMIN: "Admin",
+    GUIDER: "Guider",
+    USER: "User"
 } as const;
 
 export type AdminRole = typeof ADMIN_ROLES[keyof typeof ADMIN_ROLES];
@@ -45,9 +45,9 @@ export const hasAdminRole = (role: string): boolean => {
 // Check if user has specific admin role
 export const hasSpecificAdminRole = (userRole: string, requiredRole: AdminRole): boolean => {
     const roleHierarchy = {
-        [ADMIN_ROLES.SUPER_ADMIN]: 3,
-        [ADMIN_ROLES.ADMIN]: 2,
-        [ADMIN_ROLES.MODERATOR]: 1
+        [ADMIN_ROLES.ADMIN]: 3,
+        [ADMIN_ROLES.GUIDER]: 2,
+        [ADMIN_ROLES.USER]: 1
     };
 
     const userLevel = roleHierarchy[userRole as AdminRole] || 0;
@@ -118,7 +118,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         // LOOKING FOR THIS TEST DATA BEFORE RELEASE
         const hasAccess = true;
         setIsAdmin(hasAccess);
-        setUserInfo({ "username": "admin", "email": "admin@gmail.com", "role": "admin", "token": "1234567890" });
+        setUserInfo({ "username": "admin", "email": "admin@gmail.com", "role": "Admin", "token": "1234567890" });
         setIsLoading(false);
 
         // If trying to access admin routes without proper role, redirect

@@ -1,13 +1,46 @@
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { FaCheckCircle, FaTimesCircle } from "react-icons/fa";
+import { getUserInfoFromCookie } from "@/src/context/LoginContext";
+import { useEffect, useRef } from "react";
+import { acceptOrder, rejectOrder } from "@/src/services/tour/TourOrderService";
 
 const PaymentResultPage = () => {
-    const [searchParams] = useSearchParams();
     const navigate = useNavigate();
-
+    const [searchParams] = useSearchParams();
+    const location = useLocation();
     const success = searchParams.get("success") === "true";
-    const tourCode = searchParams.get("tourCode") || "";
+    const instanceId = searchParams.get("tourCode") || ""; // temporaty in backend
+    const userInfo = getUserInfoFromCookie();
+    console.log(location.state);
+    // If not redirect from other ngrok-free.app, redirect to access denied
+    if (userInfo == null || instanceId == null || instanceId == "") {
+        navigate("/tours");
+        return;
+    }
+    const tourCode = instanceId.split("_")[0];
+    const hasInitializedRef = useRef(false);
 
+    const executeOrder = async () => {
+        try {
+            if (success) {
+                await acceptOrder({ "instanceId": instanceId, "username": userInfo.username });
+            } else {
+                await rejectOrder({ "instanceId": instanceId, "username": userInfo.username });
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    // Load tours only once when component mounts
+    useEffect(() => {
+        if (!hasInitializedRef.current) {
+            hasInitializedRef.current = true;
+            executeOrder();
+        }
+    }, []); // Empty dependency array - only run once
+
+    // Back to tour detail page
     const handleBackToTour = () => {
         navigate(`/tours/${tourCode}`);
     };
@@ -30,7 +63,7 @@ const PaymentResultPage = () => {
                 )}
 
                 <div className="mt-6">
-                    <p className="text-sm text-gray-500">Mã tour: <span className="font-semibold">{tourCode}</span></p>
+                    <p className="text-sm text-gray-500">Mã tour: <span className="font-semibold">{instanceId}</span></p>
                 </div>
 
                 <button

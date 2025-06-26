@@ -23,6 +23,8 @@ import { AxiosError } from "axios";
 import { FaUsers, FaPlus, FaMinus } from "react-icons/fa";
 import { createTourOrder } from "@/src/services/tour/TourOrderService";
 import { getUserInfoFromCookie } from "@/src/context/LoginContext";
+import { useTour } from "@/src/context/TourContext";
+import { getInstanceIdForTourDDMMYYYY } from "@/src/utils/tourUtils";
 
 export default function TourDetail() {
   const { tourCode } = useParams();
@@ -38,6 +40,7 @@ export default function TourDetail() {
 
   const { setShowLogin } = useLogin();
   const { setRequest } = useVnpay();
+  const { selectedDepartureDate } = useTour();
 
   // State cho số vé
   const [ticketQuantity, setTicketQuantity] = useState(1);
@@ -160,9 +163,15 @@ export default function TourDetail() {
         return;
       }
 
-      // 2. Create tour order
+      // 2. Create tour order with instanceId
+      const instanceId = getInstanceId();
+      if (!instanceId) {
+        alert("Không thể tạo mã chuyến cho tour này!");
+        return;
+      }
+
       const orderResult = await createTourOrder({
-        instanceId: tour.tourCode, // Changed to instance later
+        instanceId: instanceId,
         username: userInfo.username,
         totalTicket: ticketQuantity,
         ticketPrice: tour.priceValue
@@ -175,7 +184,7 @@ export default function TourDetail() {
 
       // 3. Success -> Create payment URL
       const totalAmount = tour.priceValue * ticketQuantity;
-      const paymentResult = await createPaymentOrder(tour, userInfo, ticketQuantity, totalAmount);
+      const paymentResult = await createPaymentOrder(tour, userInfo, instanceId, ticketQuantity, totalAmount);
 
       if (paymentResult.success && paymentResult.url) {
         // Redirect to payment URL
@@ -228,6 +237,15 @@ export default function TourDetail() {
 
   // Tính tổng tiền
   const totalAmount = tour.priceValue * ticketQuantity;
+  // Tạo instanceId theo logic tương tự TourCard
+  const getInstanceId = (): string | null => {
+    if (selectedDepartureDate) {
+      return getInstanceIdForTourDDMMYYYY(tour, selectedDepartureDate);
+    } else {
+      const firstDate = tour.calendar[0];
+      return getInstanceIdForTourDDMMYYYY(tour, firstDate);
+    }
+  };
 
   return (
     <div className="container mx-auto text-black">
@@ -290,6 +308,18 @@ export default function TourDetail() {
                     <div>Mã tour: <span className="font-bold">{tour.tourCode}</span></div>
                   </div>
                 </div>
+
+                {/* Instance ID */}
+                {(() => {
+                  const instanceId = getInstanceId();
+                  return instanceId ? (
+                    <div className="flex flex-col md:flex-row gap-2 mt-2">
+                      <div className="flex flex-col md:flex-row gap-2 md:w-3/5 ">
+                        <div>Mã chuyến: <span className="font-bold font-mono text-green-600">{instanceId}</span></div>
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
 
                 {/* Chọn số vé */}
                 <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-200">
