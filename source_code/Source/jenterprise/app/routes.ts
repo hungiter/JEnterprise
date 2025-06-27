@@ -18,7 +18,7 @@ export default [
         route("tours/:tourCode", "./src/pages/Tour/TourDetailPage.tsx"),
         route("dashboard", "./src/pages/Dashboard/DashBoardPage.tsx"),
         // Account's pages
-        route("account/:accountId", "./src/pages/Account/AccountInfoPage.tsx"),
+        route("account", "./src/pages/Account/AccountInfoPage.tsx"),
         route("about", "./src/pages/About/AboutPage.tsx"),
         // Payment pags
         route("payment-result", "./src/pages/Payment/PaymentResultPage.tsx"),

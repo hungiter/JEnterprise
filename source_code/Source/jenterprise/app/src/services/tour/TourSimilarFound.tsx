@@ -10,7 +10,7 @@ export const fetchSimilarTours = async (tourCode: string): Promise<RecommendResu
     }
   });
   // const res = await api.get<SimilarityResponse>(`tours/similar_tour/${tourCode}`);
-  console.log(res.data);
+  // console.log(res.data);
   const similarity_response = res.data
   return similarity_response.data;
 }

@@ -21,7 +21,7 @@ export const fetchAllTourSummaries = async (): Promise<TourSummary[]> => {
         if (!Array.isArray(data) || !data.every(isTourSummary)) {
             throw new Error("Invalid data format: Not a valid TourSummary array");
         } else {
-            console.log(data);
+            // console.log(data);
             return data
         }
     } catch (error: unknown) {

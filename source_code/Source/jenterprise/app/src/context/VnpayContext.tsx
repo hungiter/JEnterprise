@@ -174,7 +174,7 @@ export const VnpayProvider = ({ children }: { children: ReactNode }) => {
             if (request?.name && request.tourCode) {
                 try {
                     const res = await api.post<string>('/pay/create-order', request);
-                    console.log(res.data); // or handle the URL response
+                    // console.log(res.data); // or handle the URL response
                     const info = saveVnpayRequestToCookie(res.data, request.name, request.tourCode);
                     if (info) {
                         setOrderInfo(info);

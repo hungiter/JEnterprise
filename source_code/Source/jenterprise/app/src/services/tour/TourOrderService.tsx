@@ -11,7 +11,7 @@ export const fetchAllTourOrders = async (): Promise<TourOrder[]> => {
             }
         });
 
-        console.log("Danh sách tất cả đơn hàng:", res.data);
+        // console.log("Danh sách tất cả đơn hàng:", res.data);
         return res.data;
     } catch (error: unknown) {
         if (error instanceof AxiosError) {
@@ -42,7 +42,7 @@ export const findTourOrders = async (
             }
         });
 
-        console.log("Kết quả tìm kiếm đơn hàng:", res.data);
+        // console.log("Kết quả tìm kiếm đơn hàng:", res.data);
         return res.data;
     } catch (error: unknown) {
         if (error instanceof AxiosError) {
@@ -63,7 +63,7 @@ export const createTourOrder = async (request: OrderCreateRequest): Promise<Orde
             }
         });
 
-        console.log("Tạo đơn hàng thành công:", res.data);
+        // console.log("Tạo đơn hàng thành công:", res.data);
         return res.data;
     } catch (error: unknown) {
         if (error instanceof AxiosError) {
@@ -89,7 +89,7 @@ export const acceptOrder = async (request: OrderPaidRequest): Promise<OrderPaidR
             }
         });
 
-        console.log("Gửi yêu cầu chấp nhận đơn hàng thành công:", res.data);
+        // console.log("Gửi yêu cầu chấp nhận đơn hàng thành công:", res.data);
         return res.data;
     } catch (error: unknown) {
         if (error instanceof AxiosError) {
@@ -117,7 +117,7 @@ export const rejectOrder = async (request: OrderPaidRequest): Promise<OrderPaidR
             }
         });
 
-        console.log("Gửi yêu cầu từ chối đơn hàng thành công:", res.data);
+        // console.log("Gửi yêu cầu từ chối đơn hàng thành công:", res.data);
         return res.data;
     } catch (error: unknown) {
         if (error instanceof AxiosError) {
@@ -168,7 +168,7 @@ export const getOrderStats = async (): Promise<{
                 .reduce((sum, order) => sum + (order.totalTicket * order.ticketPrice), 0)
         };
 
-        console.log("Thống kê đơn hàng:", stats);
+        // console.log("Thống kê đơn hàng:", stats);
         return stats;
     } catch (error: unknown) {
         if (error instanceof AxiosError) {

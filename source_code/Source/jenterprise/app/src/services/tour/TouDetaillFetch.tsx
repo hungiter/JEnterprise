@@ -21,7 +21,7 @@ export const fetchTourByCode = async (tourCode: string): Promise<Tour> => {
     console.log("Invalid data format: Not a valid Tour object");
     throw new Error("Invalid data format: Not a valid Tour object");
   } else {
-    console.log(data);
+    // console.log(data);
     return data;
   }
 }

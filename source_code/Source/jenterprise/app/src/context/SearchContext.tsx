@@ -100,10 +100,10 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
                     fetchedCache.current.delete(keyword);
                     const newTags = [keySearch.current];
                     setSearchTags(newTags);
-                    console.log("Search keys:", keySearch.current);
-                    console.log("New search tags:", newTags.join(","));
+                    // console.log("Search keys:", keySearch.current);
+                    // console.log("New search tags:", newTags.join(","));
                 } else {
-                    console.log("Tag fetched: ", fetched.join(","));
+                    // console.log("Tag fetched: ", fetched.join(","));
                 }
                 setOnSearchTag(false);
             }
@@ -199,9 +199,9 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
 
     const startSearching = useCallback((onFinish: (tags: string[]) => void) => {
         setOnNavigate(true);
-        console.log("Start Combined tag for navigate.");
+        // console.log("Start Combined tag for navigate.");
         const combinedTags = getCombinedTags();
-        console.log("Tags: " + combinedTags);
+        // console.log("Tags: " + combinedTags);
         setOnNavigate(false);
         onFinish(combinedTags);
     }, [getCombinedTags]);

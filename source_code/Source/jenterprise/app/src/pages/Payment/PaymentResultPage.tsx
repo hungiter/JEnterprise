@@ -11,7 +11,6 @@ const PaymentResultPage = () => {
     const success = searchParams.get("success") === "true";
     const instanceId = searchParams.get("tourCode") || ""; // temporaty in backend
     const userInfo = getUserInfoFromCookie();
-    console.log(location.state);
     // If not redirect from other ngrok-free.app, redirect to access denied
     if (userInfo == null || instanceId == null || instanceId == "") {
         navigate("/tours");

@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import { vi } from "date-fns/locale/vi";
+import { useTour } from "@/src/context/TourContext";
 
 const getShortDay = (date: Date) => {
     const weekday = date.getDay(); // 0 = CN, 1 = T2, ..., 6 = T7
@@ -7,6 +8,7 @@ const getShortDay = (date: Date) => {
 };
 
 const UpcomingTourDates = ({ dates }: { dates: string[] }) => {
+    const { selectedDepartureDate, setSelectedDepartureDate } = useTour();
     const today = new Date();
 
     const upcoming = dates
@@ -20,6 +22,17 @@ const UpcomingTourDates = ({ dates }: { dates: string[] }) => {
 
     const year = format(upcoming[0], "yyyy");
 
+    const handleDateSelect = (date: Date) => {
+        const dateString = format(date, "yyyy-MM-dd");
+        setSelectedDepartureDate(dateString);
+    };
+
+    const isDateSelected = (date: Date) => {
+        if (!selectedDepartureDate) return false;
+        const selectedDate = new Date(selectedDepartureDate);
+        return format(date, "yyyy-MM-dd") === format(selectedDate, "yyyy-MM-dd");
+    };
+
     return (
         <div className="bg-white p-4 rounded-lg shadow">
             <h3 className="text-lg font-semibold text-blue-600 mb-2">📅 Ngày khởi hành sắp tới</h3>
@@ -31,21 +44,40 @@ const UpcomingTourDates = ({ dates }: { dates: string[] }) => {
                     </div>
 
                     {/* Date Boxes */}
-                    {upcoming.map((date, idx) => (
-                        <div
-                            key={idx}
-                            className="min-w-[80px] px-3 py-2 bg-white border border-gray-200 rounded-lg shadow text-center flex flex-col justify-center"
-                        >
-                            <div className="text-blue-600 text-sm font-semibold">
-                                {getShortDay(date)}
+                    {upcoming.map((date, idx) => {
+                        const selected = isDateSelected(date);
+                        return (
+                            <div
+                                key={idx}
+                                onClick={() => handleDateSelect(date)}
+                                className={`min-w-[80px] px-3 py-2 border rounded-lg shadow text-center flex flex-col justify-center cursor-pointer transition-all duration-200 hover:scale-105 ${
+                                    selected
+                                        ? 'bg-blue-500 text-white border-blue-500 shadow-lg'
+                                        : 'bg-white text-gray-800 border-gray-200 hover:bg-blue-50 hover:border-blue-300'
+                                }`}
+                            >
+                                <div className={`text-sm font-semibold ${
+                                    selected ? 'text-white' : 'text-blue-600'
+                                }`}>
+                                    {getShortDay(date)}
+                                </div>
+                                <div className={`text-sm font-bold ${
+                                    selected ? 'text-white' : 'text-gray-800'
+                                }`}>
+                                    {format(date, "dd/MM")}
+                                </div>
                             </div>
-                            <div className="text-gray-800 text-sm font-bold">
-                                {format(date, "dd/MM")}
-                            </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
+            {selectedDepartureDate && (
+                <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-sm text-green-700">
+                        <span className="font-semibold">Đã chọn:</span> {format(new Date(selectedDepartureDate), "EEEE, dd/MM/yyyy", { locale: vi })}
+                    </p>
+                </div>
+            )}
         </div>
     );
 };

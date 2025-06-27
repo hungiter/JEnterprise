@@ -17,7 +17,7 @@ export const fetchSummaryTours = async (tourCodes: string[]): Promise<TourSummar
     // const res = await api.post<TourSummary[]>(`tours/summary_tours`,
     //     { "tour_codes": tourCodes }
     // );
-    console.log(res.data);
+    // console.log(res.data);
     return res.data
 }
 
@@ -31,6 +31,6 @@ export const fetchSummaryToursByTags = async (tags: string[]): Promise<TourSumma
             }
         }
     );
-    console.log(res.data);
+    // console.log(res.data);
     return res.data
 }

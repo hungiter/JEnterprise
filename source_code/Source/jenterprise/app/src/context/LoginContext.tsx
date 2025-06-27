@@ -98,13 +98,13 @@ export const logout = async (): Promise<{ success: boolean; message: string }> =
 const saveUserInfoToCookie = (userInfo: UserInfo) => {
     const cookieName = `accessToken`;
     const cookieValue = encodeURIComponent(JSON.stringify(userInfo));
-    console.log(cookieValue);
+    // console.log(cookieValue);
     document.cookie = `${cookieName}=${cookieValue}; path=/; max-age=86400`;
 }
 
 export const getUserInfoFromCookie = (): UserInfo | null => {
     const cookieName = `accessToken`;
-    console.log(getCookie(cookieName));
+    // console.log(getCookie(cookieName));
     const match = document.cookie.match(
         new RegExp(`(?:^|; )${cookieName.replace(/[-[\]/{}()*+?.\\^$|]/g, '\\$&')}=([^;]*)`)
     );

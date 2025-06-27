@@ -211,13 +211,13 @@ export const TourProvider = ({ children }: { children: ReactNode }) => {
 
     // Load tours function
     const loadTours = useCallback(async () => {
-        console.log('Starting to load tours...');
+        // console.log('Starting to load tours...');
         setLoading(true);
         setError(null);
 
         try {
             const data = await fetchAllTourSummaries();
-            console.log('Tours loaded successfully, count:', data.length);
+            // console.log('Tours loaded successfully, count:', data.length);
             setTours(data);
         } catch (error: unknown) {
             let errorMessage = "Lấy danh sách tour thất bại";

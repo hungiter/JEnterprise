@@ -40,10 +40,27 @@ export default function TourDetail() {
 
   const { setShowLogin } = useLogin();
   const { setRequest } = useVnpay();
-  const { selectedDepartureDate } = useTour();
+  const { selectedDepartureDate, setSelectedDepartureDate } = useTour();
 
   // State cho số vé
   const [ticketQuantity, setTicketQuantity] = useState(1);
+
+  // Auto-select first available date when tour loads
+  useEffect(() => {
+    if (tour && tour.calendar && tour.calendar.length > 0) {
+      const today = new Date();
+      const upcomingDates = tour.calendar
+        .map(date => new Date(date))
+        .filter(date => date >= today)
+        .sort((a, b) => a.getTime() - b.getTime());
+
+      if (upcomingDates.length > 0 && !selectedDepartureDate) {
+        const firstDate = upcomingDates[0];
+        const dateString = firstDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+        setSelectedDepartureDate(dateString);
+      }
+    }
+  }, [tour, selectedDepartureDate, setSelectedDepartureDate]);
 
   useEffect(() => {
     const getTourDetails = async () => {
@@ -264,13 +281,31 @@ export default function TourDetail() {
             </Card>
 
             {/* Lịch khởi hành sắp tới */}
-            <div className="mt-6">
-              <UpcomingTourDates dates={tour.calendar} />
-            </div>
+            {(() => {
+              const calendar = tour.calendar.map(date => new Date(date).toISOString().split('T')[0]).filter(date => date !== null);
+              if (calendar.length > 0) {
+                return (
+                  <div className="mt-6">
+                    <UpcomingTourDates dates={calendar} />
+                  </div>
+                );
+              }
+              return null;
+            })()}
+
             {/* Hành trình */}
-            <div className="mt-6">
-              <JourneyDetail locations={tour.tourDetail.sightseeing_spots.trim().split(", ").join(",").split(",")} />
-            </div>
+            {(() => {
+              const sightSeeingSpots = tour.tourDetail.sightseeing_spots.trim().split(", ").join(",").split(",").filter(spot => spot.trim() !== "");
+              if (sightSeeingSpots.length > 0) {
+                return (
+                  <div className="mt-6">
+                    <JourneyDetail locations={sightSeeingSpots} />
+                  </div>
+                );
+              }
+              return null;
+            })()}
+
             <TripExtraInfo info={tour.tourDetail} />
 
             <Card className="container mx-auto mt-4">
@@ -308,6 +343,15 @@ export default function TourDetail() {
                     <div>Mã tour: <span className="font-bold">{tour.tourCode}</span></div>
                   </div>
                 </div>
+
+                {/* Selected Departure Date */}
+                {selectedDepartureDate && (
+                  <div className="flex flex-col md:flex-row gap-2 mt-2">
+                    <div className="flex flex-col md:flex-row gap-2 md:w-3/5 ">
+                      <div>Ngày khởi hành: <span className="font-bold text-blue-600">{new Date(selectedDepartureDate).toLocaleDateString('vi-VN')}</span></div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Instance ID */}
                 {(() => {

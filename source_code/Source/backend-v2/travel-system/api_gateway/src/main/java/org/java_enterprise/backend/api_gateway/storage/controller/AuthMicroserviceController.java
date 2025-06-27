@@ -60,6 +60,32 @@ public class AuthMicroserviceController {
         return forwardRequest(HttpMethod.POST, "/login", loginRequestJson);
     }
 
+    // POST /logout
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(HttpServletRequest request) {
+        ResponseEntity<String> response = check_token(request);
+        if (response.getStatusCode() == HttpStatus.OK) {
+            String token = response.getBody();
+            user_cache.remove(token);
+            System.out.println("Đăng xuất thành công");
+            return ResponseEntity.ok("Đăng xuất thành công");
+        } else {
+            System.out.println("Đăng xuất thất bại");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Đăng xuất thất bại");
+        }
+    }
+
+    // POST /change-password
+    @PostMapping("/change-password")
+    public ResponseEntity<String> changePassword(HttpServletRequest request, @RequestBody String changePasswordRequestJson) {
+        ResponseEntity<String> response = check_token(request);
+        if (response.getStatusCode() == HttpStatus.OK) {
+            return forwardRequest(HttpMethod.POST, "/change-password", changePasswordRequestJson);
+        } else {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Chưa đăng nhập");
+        }
+    }
+
     @PostMapping("/check_token")
     public ResponseEntity<String> check_token(HttpServletRequest request) {
         // Kiểm tra header có bắt đầu bằng "Bearer "
@@ -85,7 +111,8 @@ public class AuthMicroserviceController {
                 } else {
                     errorJson.put("statusCode", "401");
                     errorJson.put("error", "Vui lòng đăng nhập lại");
-                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorJson.toString()); // Trả JSON string trực tiếp
+                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorJson.toString()); // Trả JSON string
+                                                                                                      // trực tiếp
                 }
             } catch (Exception e) {
                 errorJson.put("error", "Error parsing token info");
@@ -123,7 +150,8 @@ public class AuthMicroserviceController {
                 if (responseStatus.is3xxRedirection()) {
                     URI redirectUri = response.getHeaders().getLocation();
                     if (redirectUri != null) {
-                        ResponseEntity<String> redirectResponse = restTemplate.exchange(redirectUri, method, entity, String.class);
+                        ResponseEntity<String> redirectResponse = restTemplate.exchange(redirectUri, method, entity,
+                                String.class);
                         responseBody = redirectResponse.getBody();
                         responseStatus = redirectResponse.getStatusCode();
                         ObjectMapper objectMapper = new ObjectMapper();
@@ -169,11 +197,11 @@ public class AuthMicroserviceController {
         json.put("role", role);
         String info = json.toString();
 
-//        Cache cache = cacheManager.getCache("token");
-//        if (cache != null) {
-//            System.out.println(info);
-//            cache.put(token, info);
-//        }
+        // Cache cache = cacheManager.getCache("token");
+        // if (cache != null) {
+        // System.out.println(info);
+        // cache.put(token, info);
+        // }
 
         // REMOVE OLD - 1 device in time
         String oldKey = null;
@@ -194,20 +222,21 @@ public class AuthMicroserviceController {
     }
 
     private String getTokenInfo(String token) {
-//        Cache cache = cacheManager.getCache("token");
-//        if (cache != null) {
-//            try {
-//                Cache.ValueWrapper valueWrapper = cache.get(token);
-//                if (valueWrapper != null) {
-//                    return Objects.requireNonNull(valueWrapper.get()).toString(); // Trả về chuỗi JSON
-//                }
-//            } catch (Exception e) {
-//                // Có thể log lỗi nếu cần
-//                System.out.println("getTokenInfo: " + e);
-//                return "{}"; // Trả về JSON rỗng nếu có lỗi
-//            }
-//        }
-//        return "{}";
+        // Cache cache = cacheManager.getCache("token");
+        // if (cache != null) {
+        // try {
+        // Cache.ValueWrapper valueWrapper = cache.get(token);
+        // if (valueWrapper != null) {
+        // return Objects.requireNonNull(valueWrapper.get()).toString(); // Trả về chuỗi
+        // JSON
+        // }
+        // } catch (Exception e) {
+        // // Có thể log lỗi nếu cần
+        // System.out.println("getTokenInfo: " + e);
+        // return "{}"; // Trả về JSON rỗng nếu có lỗi
+        // }
+        // }
+        // return "{}";
         System.out.println(user_cache);
         String info = user_cache.get(token);
         if (info != null) {
