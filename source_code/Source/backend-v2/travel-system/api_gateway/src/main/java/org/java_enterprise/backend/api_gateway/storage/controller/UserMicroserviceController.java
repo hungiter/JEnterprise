@@ -20,8 +20,13 @@ public class UserMicroserviceController {
     @Autowired
     private AppHeaders appHeaders;
 
-    // GET all users
     @GetMapping
+    public ResponseEntity<String> checkEndpoint() {
+        return ResponseEntity.ok("Endpoint is working!");
+    }
+
+    // GET all users
+    @GetMapping("/all")
     public ResponseEntity<String> getAllUsers() {
         return forwardRequest(HttpMethod.GET, "");
     }
@@ -65,7 +70,7 @@ public class UserMicroserviceController {
     private ResponseEntity<String> forwardRequest(HttpMethod method, String path, String body) {
         HttpHeaders headers = appHeaders.getHeaders();
         HttpEntity<String> entity = new HttpEntity<>(body, headers);
-        String url = userServiceUrl + "/api/users" + path;
+        String url = userServiceUrl + path;
         System.out.println(url);
         System.out.println(entity);
 

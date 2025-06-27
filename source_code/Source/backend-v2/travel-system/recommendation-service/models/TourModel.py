@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 
 
 class ScheduleInfo(BaseModel):
@@ -20,6 +20,18 @@ class TourDetail(BaseModel):
     vehicles: str = ""
     trip_plan: List[ScheduleInfo] = []
 
+# NEW TOUR FORMAT
+
+
+class TourInstance(BaseModel):
+    instanceId: str
+    tourId: str
+    guiderIds: List[str] = []
+    startDate: str
+    totalSlot: int = 36
+    remainingSlot: int = 36
+    status: str = "PENDING"
+
 
 class Tour(BaseModel):
     tour_code: str
@@ -28,7 +40,7 @@ class Tour(BaseModel):
     departure: str
     duration: str
     vehicle: str
-    calendar: List[str]
+    instances: List[str]
     price: str = ""
     priceValue: int
     detail_url: str
@@ -65,3 +77,21 @@ class TourFeature(BaseModel):
         if not self.words:
             return "No words available"
         return " ".join(self.words)
+
+    def to_dict(self):
+        return {
+            "tour_code": self.tour_code,
+            "locations": self.locations,
+            "activities": self.activities,
+            "words": self.words,
+        }
+
+
+class RecommendTourRequest(BaseModel):
+    tour_id: str
+    user_id: str
+
+
+class RecommendTourRequest2(BaseModel):
+    tour_ids: List[str] = []
+    ignore_ids: List[str] = []

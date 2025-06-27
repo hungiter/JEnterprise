@@ -1,19 +1,37 @@
+from datetime import datetime
+import time
+import pycron
 from fastapi import FastAPI
 import diskcache
 from crawler.Crawler import fetch_tours
-from mongodb.MongoManager import update_tours
+from mongodb.MongoManager import check_distinct_tour_id_in_instances, check_distinct_tour_id_in_tours, update_instances_status, validate_instance_tours, update_tours
 app = FastAPI()
 cache = diskcache.Cache("cache")  # lưu vào thư mục cache/
-cache_map = [{
-    "name": "dltk_data",
-    "link": "https://travel.com.vn/du-lich-tiet-kiem.aspx"
-}, {
-    "name": "dltc_data",
-    "link": "https://travel.com.vn/du-lich-tieu-chuan.aspx"
-}, {
-    "name": "dlgt_data",
-    "link": "https://travel.com.vn/du-lich-gia-tot.aspx"
-}
+cache_map = [  # Check
+    {  # Tiết kiệm - Start
+        "name": "dltk_data",
+        "link": "https://travel.com.vn/du-lich-tiet-kiem.aspx"
+    },  # Tiết kiệm - End
+    {  # Tiêu chuẩn - Start
+        "name": "dltc_data",
+        "link": "https://travel.com.vn/du-lich-tieu-chuan.aspx"
+    },  # Tiêu chuẩn - End
+    {# Giá tốt - Start
+        "name": "dlgt_data",
+        "link": "https://travel.com.vn/du-lich-gia-tot.aspx"
+    }, # Giá tốt - End
+    { # Cao cấp - Start
+        "name": "dlcc_data",
+        "link": "https://travel.com.vn/du-lich-cao-cap.aspx"
+    }, # Cao cấp - End
+     { # Châu Mỹ - Start
+        "name": "dlcm_data",
+        "link": "https://travel.com.vn/du-lich-nuoc-ngoai/tour-chau-my.aspx"
+    }, # Châu Mỹ - End
+     { # Caravan - Start
+        "name": "dlcrv_data",
+        "link": "https://travel.com.vn/du-lich-vietravel.aspx?text=caravan"
+    }, # Caravan - End
 ]
 
 
@@ -21,12 +39,10 @@ cache_map = [{
 def root():
     return {"message": "Webcrawler API is working!"}
 
-# @app.get("/crawl", response_model=List[Tour])
-
 
 @app.get("/crawl")
 def crawl_tours():
-    clear_cache = False
+    clear_cache = True
     try:
         display_data = []
         for cache_item in cache_map:
@@ -54,3 +70,26 @@ def crawl_tours():
     except Exception as e:
         print(e)
         return {"message": "Check backend 'cache_map'"}
+
+crawl_tours()
+validate_instance_tours()
+update_instances_status()
+
+# cron_expression = "0 0 * * *" # Every day at 00:00
+# already_ran_today = False
+
+# while True:
+#     now = datetime.now()
+
+#     if pycron.is_now(cron_expression) and not already_ran_today:
+#         crawl_tours()
+#         validate_instance_tours()
+#         update_instances_status()
+#         already_ran_today = True
+#         time.sleep(60)  # Wait to avoid double execution in the same minute
+
+#     # Reset the flag after midnight passes
+#     if now.hour != 0:
+#         already_ran_today = False
+
+#     time.sleep(10)  # Check every 10 seconds

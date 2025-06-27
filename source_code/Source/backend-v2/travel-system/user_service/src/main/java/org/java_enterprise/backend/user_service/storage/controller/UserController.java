@@ -17,7 +17,7 @@ public class UserController {
     private UserService userService;
 
     // CRUD ========================================================================================
-    @GetMapping
+    @GetMapping("/")
     public List<User> getAllUsers() {
         return userService.getAllUsers();
     }

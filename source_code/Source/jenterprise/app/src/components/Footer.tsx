@@ -1,8 +1,8 @@
 import { companyInfo, provinces } from "../services/data"
 
 export default function Footer() {
-    console.log("companyInfo", companyInfo);
-    console.log("provinces", provinces);
+    // console.log("companyInfo", companyInfo);
+    // console.log("provinces", provinces);
     return (
         <footer className="bg-blue-50 text-sm py-8 px-4 border-t border-gray-200 text-black">
             <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">

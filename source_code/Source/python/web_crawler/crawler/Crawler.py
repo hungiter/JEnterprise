@@ -1,161 +1,232 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import os
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 import diskcache
 import time
 from typing import List
 from bs4 import BeautifulSoup
+from tqdm import tqdm
 from crawler.DateUtils import parse_dates_with_year_rollover
-from crawler.TourModel import ScheduleInfo, Tour, TourDetail
+from crawler.TourModel import ScheduleInfo, OldTour, TourDetail
 import re
 crawl_target = "https://travel.com.vn"
 cache = diskcache.Cache("cache")  # lưu vào thư mục cache/
-page_loading_delay_time = 2  # 2 seconds
+# page_loading_delay_time = 2  # 2 seconds
+page_loading_delay_time = 5  # 5
+
+options = Options()
+options.add_argument("--headless")
+options.add_argument("window-size=1920,1080")
+options.add_argument(
+    "--disable-blink-features=AutomationControlled")
+options.add_argument(
+    "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
+options.add_argument("--log-level=3")
+options.add_experimental_option(
+    'excludeSwitches', ['enable-logging'])  # ẩn DevTools log
+service = Service()
+
+tour_missing_data = []
 
 
 def get_tour_from_html(url: str, html: str):
     soup = BeautifulSoup(html, 'html.parser')
     tour_detail = TourDetail()
     tour_div = soup.find('div', class_='tour--detail__content--left')
-    try:
-        tour_image_thumbnails = []
-        tour_image_main = ""
-        tour_sightseeing_spots = ""
-        tour_cuisine = ""
-        tour_suitable_customers = ""
-        tour_ideal_times = ""
-        tour_vehicles = ""
-        trip_plan = []
+    if tour_div:
         try:
-            image_div = tour_div.findChild(
-                'div', class_='image-gallery')
-            if image_div:
-                thumbnails_div = image_div.find(
-                    'div', class_='image-gallery--wrapper__thumbnails')
-                if thumbnails_div:
-                    image_divs = thumbnails_div.find_all('img')
-                    if image_divs:
-                        tour_image_thumbnails = [image_div['src']
-                                                 for image_div in image_divs]
-                img_main_div = image_div.find(
-                    'div', class_='image-gallery--wrapper__main')
-                if img_main_div:
-                    image_div = img_main_div.find('img')
+            tour_image_thumbnails = []
+            tour_image_main = ""
+            tour_sightseeing_spots = ""
+            tour_cuisine = ""
+            tour_suitable_customers = ""
+            tour_ideal_times = ""
+            tour_vehicles = ""
+            trip_plan = []
+            is_mobile = False
+
+            def image_fetcher():
+                nonlocal tour_image_thumbnails, tour_image_main, is_mobile
+                image_div = None
+                try:
+                    image_div = tour_div.findChild(
+                        'div', class_='image-gallery')
+
+                    if not image_div:
+                        image_div = tour_div.findChild(
+                            'div', class_='image-gallery-mobile')
+                        if image_div:
+                            is_mobile = True
+                            image_divs = image_div.find_all('img')
+                            tour_image_thumbnails = [img['src']
+                                                     for img in image_divs]
+
+                    else:
+                        thumbnails_div = image_div.find(
+                            'div', class_='image-gallery--wrapper__thumbnails')
+                        if thumbnails_div:
+                            image_divs = thumbnails_div.find_all('img')
+                            if image_divs:
+                                tour_image_thumbnails = [
+                                    img['src'] for img in image_divs]
+
+                        img_main_div = image_div.find(
+                            'div', class_='image-gallery--wrapper__main')
+                        if img_main_div:
+                            img_tag = img_main_div.find('img')
+                            if img_tag:
+                                tour_image_main = img_tag['src']
+
+                    # Nếu main ảnh chưa có, gán bằng ảnh đầu tiên trong thumbnails
+                    if tour_image_thumbnails and not tour_image_main:
+                        tour_image_main = tour_image_thumbnails[0]
+                        tour_image_thumbnails = [
+                            img for img in tour_image_thumbnails if img != tour_image_main
+                        ]
+
                     if image_div:
-                        tour_image_main = image_div['src']
+                        image_div.decompose()
 
-                image_div.decompose()
+                except Exception as e:
+                    print(f"Fetch images failed: {e}", flush=True)
 
-            overview_div = tour_div.findChild(
-                'div', class_='section-detail tour--detail__content--left--overview tour-overview')
-            if overview_div:
-                overview_info_div = overview_div.findChild(
-                    'div', class_='tour--detail__content--left--overview__content'
-                )
-
-                if overview_info_div:
-                    overview_item_divs = overview_info_div.findAll(
-                        "div", class_=lambda x: x and 'tour--detail__content--left--overview__content-item' in x.split())
-                    for overview_item_div in overview_item_divs:
-                        overview_title = overview_item_div.find(
-                            "div", "tour--detail__content--left--overview__content-title")
-                        overview_info = overview_item_div.find("p")
-                        title_text = overview_title.text
-                        info_text = overview_info["title"]
-                        match title_text:
-                            case "Điểm tham quan":
-                                tour_sightseeing_spots = info_text
-                            case "Ẩm thực":
-                                tour_cuisine = info_text
-                            case "Đối tượng thích hợp":
-                                tour_suitable_customers = info_text
-                            case "Thời gian lý tưởng":
-                                tour_ideal_times = info_text
-                            case "Phương tiện":
-                                tour_vehicles = info_text
-                overview_div.decompose()
-
-            schedule_div = tour_div.findChild(
-                'div', class_='tour-schedule')
-            if schedule_div:
-                schedule_item_divs = schedule_div.findAll(
-                    "div", class_=lambda x: x and 'item-schedule' in x.split())
-                schedule_index = 0
-                for schedule_item_div in schedule_item_divs:
-                    # Reset value
-                    schedule_index = schedule_index + 1
-                    schedule_date = ""
-                    schedule_title = ""
-                    schedule_meal_info = ""
-                    schedule_detail_html = ""
-
-                    # Get Day + Location
-                    schedule_item_title_div = schedule_item_div.find(
-                        "div", class_=lambda x: x and 'item-title-content' in x.split())
-                    if schedule_item_title_div:
-                        title_p = schedule_item_title_div.find("p")
-                        if title_p:
-                            # Get Day
-                            schedule_date_label = title_p.find("label")
-                            if schedule_date_label:
-                                schedule_date = schedule_date_label.get_text(
-                                    strip=True)
-                                match = re.match(
-                                    r"(Ngày\s*\d+)", schedule_date)
-                                if match:
-                                    schedule_date = match.group(1)
-                                else:
-                                    schedule_date = ""
-                                # print(schedule_date)
-                            # Get Location
-                            schedule_title_span = title_p.find("span")
-                            if schedule_title_span:
-                                schedule_title = schedule_title_span.get_text(
-                                    strip=True)
-                                # print(schedule_title)
-                    # Get Meal Info
-                    schedule_item_meal_info_div = schedule_item_div.find(
-                        "div", class_=lambda x: x and 'meal-inFor' in x.split())
-                    if schedule_item_meal_info_div:
-                        schedule_meal_info_p = schedule_item_meal_info_div.find(
-                            "p")
-                        if schedule_meal_info_p:
-                            schedule_meal_info = schedule_meal_info_p.get_text(
-                                strip=True)
-                            # print(schedule_meal_info)
-                    # Get Info Html
-                    schedule_item_detail_info_div = schedule_item_div.find(
-                        "div", class_="inner")
-                    if schedule_item_detail_info_div:
-                        schedule_detail_html = schedule_item_detail_info_div.decode_contents()
-
-                    try:
-                        plan_info = ScheduleInfo(
-                            index=schedule_index,
-                            date_label=schedule_date,
-                            title=schedule_title,
-                            meal_info=schedule_meal_info,
-                            detail_html=schedule_detail_html
+            def overview_fetcher():
+                nonlocal tour_sightseeing_spots, tour_cuisine, tour_suitable_customers, tour_ideal_times, tour_vehicles
+                try:
+                    overview_div = tour_div.findChild(
+                        'div', class_='section-detail tour--detail__content--left--overview tour-overview')
+                    if overview_div:
+                        overview_info_div = overview_div.findChild(
+                            'div', class_='tour--detail__content--left--overview__content'
                         )
-                        trip_plan.append(plan_info)
-                    except:
-                        pass
-                schedule_div.decompose()
+
+                        if overview_info_div:
+                            overview_item_divs = overview_info_div.findAll(
+                                "div", class_=lambda x: x and 'tour--detail__content--left--overview__content-item' in x.split())
+                            for overview_item_div in overview_item_divs:
+                                overview_title = overview_item_div.find(
+                                    "div", "tour--detail__content--left--overview__content-title")
+                                overview_info = overview_item_div.find("p")
+                                if overview_title and overview_info:
+                                    title_text = overview_title.text
+                                    info_text = overview_info.text
+                                    if info_text and title_text:
+                                        match title_text:
+                                            case "Điểm tham quan":
+                                                tour_sightseeing_spots = info_text
+                                            case "Ẩm thực":
+                                                tour_cuisine = info_text
+                                            case "Đối tượng thích hợp":
+                                                tour_suitable_customers = info_text
+                                            case "Thời gian lý tưởng":
+                                                tour_ideal_times = info_text
+                                            case "Phương tiện":
+                                                tour_vehicles = info_text
+                        overview_div.decompose()
+                except Exception as e:
+                    print(f"Fetch overview failed: {e} {url}", flush=True)
+
+            def schedule_fetcher():
+                nonlocal trip_plan
+                try:
+                    tour_schedule_div = tour_div.findChild(
+                        'div', class_='schedule')
+                    if not tour_schedule_div:
+                        tour_schedule_div = tour_div.findChild(
+                            'div', class_='tour-schedule')
+
+                    if tour_schedule_div:
+                        schedule_item_divs = tour_schedule_div.findAll(
+                            "div", class_=lambda x: x and 'item-schedule' in x.split())
+                        schedule_index = 0
+                        for schedule_item_div in schedule_item_divs:
+                            # Reset value
+                            schedule_index = schedule_index + 1
+                            schedule_date = ""
+                            schedule_title = ""
+                            schedule_meal_info = ""
+                            schedule_detail_html = ""
+                            try:
+                                # Get Day + Location
+                                schedule_item_title_div = schedule_item_div.find(
+                                    "div", class_=lambda x: x and 'item-title-content' in x.split())
+                                if schedule_item_title_div:
+                                    title_p = schedule_item_title_div.find("p")
+                                    if title_p:
+                                        # Get Day
+                                        schedule_date_label = title_p.find(
+                                            "label")
+                                        if schedule_date_label:
+                                            schedule_date = schedule_date_label.get_text(
+                                                strip=True)
+                                            match = re.match(
+                                                r"(Ngày\s*\d+)", schedule_date)
+                                            if match:
+                                                schedule_date = match.group(1)
+                                            else:
+                                                schedule_date = ""
+                                            # print(f"Date: {schedule_date}")
+                                        # Get Location
+                                        schedule_title_span = title_p.find(
+                                            "span")
+                                        if schedule_title_span:
+                                            schedule_title = schedule_title_span.get_text(
+                                                strip=True)
+                                            # print(f"Title: {schedule_title}")
+                                # Get Meal Info
+                                schedule_item_meal_info_div = schedule_item_div.find(
+                                    "div", class_=lambda x: x and 'meal-inFor' in x.split())
+                                if schedule_item_meal_info_div:
+                                    schedule_meal_info_p = schedule_item_meal_info_div.find(
+                                        "p")
+                                    if schedule_meal_info_p:
+                                        schedule_meal_info = schedule_meal_info_p.get_text(
+                                            strip=True)
+                                        # print(f"Meal: {schedule_meal_info}")
+                                # Get Info Html
+                                schedule_item_detail_info_div = schedule_item_div.find(
+                                    "div", class_="inner")
+                                if schedule_item_detail_info_div:
+                                    schedule_detail_html = schedule_item_detail_info_div.decode_contents()
+                                    # print(f"Content: {schedule_detail_html}")
+                            except Exception as e:
+                                print(f"Data process error: {e}", flush=True)
+                            try:
+                                plan_info = ScheduleInfo(
+                                    index=schedule_index,
+                                    date_label=schedule_date,
+                                    title=schedule_title,
+                                    meal_info=schedule_meal_info,
+                                    detail_html=schedule_detail_html
+                                )
+                                trip_plan.append(plan_info)
+                            except Exception as e:
+                                print(f"Add new plan failed: {e}", flush=True)
+                        tour_schedule_div.decompose()
+                except Exception as e:
+                    print(f"Fetch trip plan failed: {e}", flush=True)
+
+            try:
+                image_fetcher()
+                overview_fetcher()
+                schedule_fetcher()
+            except Exception as e:
+                pass
+
+            tour_detail = TourDetail(
+                img_main=tour_image_main,
+                img_thumbnails=tour_image_thumbnails,
+                sightseeing_spots=tour_sightseeing_spots,
+                cuisine=tour_cuisine,
+                suitable_customers=tour_suitable_customers,
+                ideal_times=tour_ideal_times,
+                vehicles=tour_vehicles,
+                trip_plan=trip_plan
+            )
         except Exception as e:
-            pass
-
-        tour_detail = TourDetail(
-            img_main=tour_image_main,
-            img_thumbnails=tour_image_thumbnails,
-            sightseeing_spots=tour_sightseeing_spots,
-            cuisine=tour_cuisine,
-            suitable_customers=tour_suitable_customers,
-            ideal_times=tour_ideal_times,
-            vehicles=tour_vehicles,
-            trip_plan=trip_plan
-        )
-    except Exception as e:
-        print(f"Error extracting a tour: {e}")
-
+            print(f"Error extracting a tour: {e}")
     return tour_detail
 
 
@@ -163,187 +234,143 @@ def fetch_tour(url: str, tour_id: str):
     tour_detail = TourDetail()
     try:
         raw_data = ""
+        # cache.delete(tour_id)
         if tour_id in cache:
             raw_data = cache[tour_id]
         else:
-            options = Options()
-            options.add_argument("--headless")
-            options.add_argument(
-                "--disable-blink-features=AutomationControlled")
-            options.add_argument(
-                "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
-
-            driver = webdriver.Chrome(options=options)
+            driver = webdriver.Chrome(options=options, service=service)
             driver.get(url)
             time.sleep(page_loading_delay_time)  # Wait JS render
 
             raw_data = driver.page_source
             cache.set(tour_id, raw_data, expire=3600)
             driver.close()
-
         tour_detail = get_tour_from_html(url=url, html=raw_data)
-        return tour_detail
     except Exception as e:
-        return tour_detail
+        print(f"Fetch tour error: {e}")
+    return tour_detail
+
+
+non_digit_re = re.compile(r'\D')
 
 
 def get_tours_from_html(html: str):
     soup = BeautifulSoup(html, 'html.parser')
     tour_list = soup.find_all('div', class_='card-filter-desktop')
-    tours: List[Tour] = []
-    index = 0
-    for tour_div in tour_list:
+    tours = []
+
+    def extract_basic_tour_info(tour_div):
         try:
-            tour_id = ""
-            tour_thumbnail = ""
-            tour_tag = ""
-            tour_title = ""
-            tour_departure = ""
-            tour_staytime = ""
-            tour_vehicle = ""
+            tour_id = tour_thumbnail = tour_tag = tour_title = ""
+            tour_departure = tour_staytime = tour_vehicle = ""
             tour_calendar = []
             tour_price_value = 0
             tour_price_text = ""
             tour_detail_link = ""
-            tour_detail = TourDetail()
-            try:
-                thumbnail_div = tour_div.findChild(
-                    'div', class_='card-filter-desktop__thumbnail')
-                if thumbnail_div:
-                    thumbnail_img = thumbnail_div.findChild('img')
-                    if thumbnail_img:
-                        tour_thumbnail = thumbnail_img['src']
 
-                    tour_tag_div = thumbnail_div.find(
-                        'div', class_=lambda x: x and 'tour-card--tags__tag' in x.split())
-                    if tour_tag_div:
-                        tour_span_tag = tour_tag_div.findChild('span')
-                        tour_tag = tour_span_tag.text
+            # Thumbnail and tag
+            thumbnail_img = tour_div.select_one(
+                '.card-filter-desktop__thumbnail img')
+            if thumbnail_img:
+                tour_thumbnail = thumbnail_img['src']
+            tag_span = tour_div.select_one('.tour-card--tags__tag span')
+            if tag_span:
+                tour_tag = tag_span.text.strip()
 
-                    thumbnail_div.decompose()
-            except Exception as e:
-                pass
+            # Content block
+            content = tour_div.select_one('.card-filter-desktop__content')
+            if content:
+                title_a = content.select_one('[class*="header-title"]')
+                if title_a:
+                    tour_title = title_a.get('title', '').strip()
+                    tour_detail_link = f"{crawl_target}{title_a['href']}"
 
-            try:
-                tour_info_div = tour_div.findChild(
-                    'div', class_='card-filter-desktop__content')
-                if tour_info_div:
-                    tour_title_a = tour_info_div.find(
-                        'a', class_=lambda x: x and 'card-filter-desktop__content--header-title' in x.split())
-                    if tour_title_a:
-                        tour_title = tour_title_a['title']
-                        tour_detail_link = f"{crawl_target}{tour_title_a['href']}"
-                        tour_title_a.decompose()
+                def get_text(selector):
+                    el = content.select_one(selector)
+                    return el.text.strip() if el else ""
 
-                    tour_id_div = tour_info_div.find(
-                        'div', class_=lambda x: x and 'info-tour-tourCode' in x.split())
-                    if tour_id_div:
-                        tour_id = tour_id_div.find('p').text
-                        tour_id_div.decompose()
+                tour_id = get_text('.info-tour-tourCode p')
+                tour_departure = get_text('.info-tour-departure p')
+                tour_staytime = get_text('.info-tour-dayStayText--time p')
+                tour_vehicle = get_text('.info-tour-dayStayText p')
 
-                    tour_departure_div = tour_info_div.find(
-                        'div', class_=lambda x: x and 'info-tour-departure' in x.split())
-                    if tour_departure_div:
-                        tour_departure = tour_departure_div.find('p').text
-                        tour_departure_div.decompose()
+                date_divs = content.select('.info-tour-calendar .list-item')
+                tour_calendar = [div.text.strip() for div in date_divs]
+                tour_calendar = parse_dates_with_year_rollover(tour_calendar)
 
-                    tour_staytime_div = tour_info_div.find(
-                        'div', class_=lambda x: x and 'info-tour-dayStayText--time' in x.split())
-                    if tour_staytime_div:
-                        tour_staytime = tour_staytime_div.find('p').text
-                        tour_staytime_div.decompose()
+                price_p = content.select_one(
+                    '.card-filter-desktop__content--price-newPrice p')
+                if price_p:
+                    tour_price_text = price_p.text.strip()
+                    tour_price_value = int(
+                        non_digit_re.sub('', tour_price_text))
 
-                    tour_vehicle_div = tour_info_div.find(
-                        'div', class_=lambda x: x and 'info-tour-dayStayText' in x.split())
-                    if tour_vehicle_div:
-                        tour_vehicle = tour_vehicle_div.find('p').text
-                        tour_vehicle_div.decompose()
-
-                    tour_calendar_div = tour_info_div.find(
-                        'div', class_=lambda x: x and 'info-tour-calendar' in x.split())
-                    if tour_calendar_div:
-                        start_date_divs = tour_calendar_div.findAll(
-                            'div', class_='list-item')
-                        tour_calendar = [date.text.strip()
-                                         for date in start_date_divs]
-                        tour_calendar = parse_dates_with_year_rollover(
-                            tour_calendar)
-                        tour_calendar_div.decompose()
-
-                    tour_price_div = tour_info_div.find(
-                        'div', class_='card-filter-desktop__content--price-newPrice')
-                    if tour_price_div:
-                        tour_price_text = tour_price_div.find('p').text
-                        tour_price_value = int(
-                            re.sub(r'\D', '', tour_price_text))
-                        tour_price_div.decompose()
-                    tour_info_div.decompose()
-            except Exception as e:
-                print(f"Error: {e}")
-
-            # if index == 0:
-            #     index = index + 1
-            #     try:
-            #         tour_detail = fetch_tour(tour_detail_link, tour_id)
-            #         tour = Tour(
-            #             tour_code=tour_id,
-            #             thumbnail=tour_thumbnail,
-            #             title=tour_title,
-            #             departure=tour_departure,
-            #             duration=tour_staytime,
-            #             vehicle=tour_vehicle,
-            #             calendar=tour_calendar,
-            #             priceValue=tour_price_value,
-            #             price=tour_price_text,
-            #             detail_url=tour_detail_link,
-            #             tag=tour_tag,
-            #             tour_detail=tour_detail
-            #         )
-            #         tours.append(tour)
-            #     except Exception as e:
-            #         pass
-            try:
-                tour_detail = fetch_tour(tour_detail_link, tour_id)
-                tour = Tour(
-                    tour_code=tour_id,
-                    thumbnail=tour_thumbnail,
-                    title=tour_title,
-                    departure=tour_departure,
-                    duration=tour_staytime,
-                    vehicle=tour_vehicle,
-                    calendar=tour_calendar,
-                    priceValue=tour_price_value,
-                    price=tour_price_text,
-                    detail_url=tour_detail_link,
-                    tag=tour_tag,
-                    tour_detail=tour_detail
-                )
-                tours.append(tour)
-                print(f"Tour {tour_id} added.")
-            except Exception as e:
-                print(f"Fetch Tour Error: {e}")
+            if not all([tour_thumbnail, tour_price_text]):
+                raise ValueError("Missing data")
+            return {
+                "tour_code": tour_id,
+                "thumbnail": tour_thumbnail,
+                "title": tour_title,
+                "departure": tour_departure,
+                "duration": tour_staytime,
+                "vehicle": tour_vehicle,
+                "calendar": tour_calendar,
+                "priceValue": tour_price_value,
+                "price": tour_price_text,
+                "detail_url": tour_detail_link,
+                "tag": tour_tag,
+            }
         except Exception as e:
-            print(f"Error extracting a tour: {e}")
-    return tours
+            print(f"Error parsing basic info: {e}")
+            return None
+
+    def build_tour(tour_info):
+        try:
+            tour_detail = fetch_tour(
+                tour_info["detail_url"], tour_info["tour_code"])
+            if tour_detail.img_main == "" and len(tour_detail.img_thumbnails) == 0:
+                cache.delete(tour_info["tour_code"] or "")
+                return None
+            tour = OldTour(tour_detail=tour_detail, **tour_info)
+            return tour
+        except Exception as e:
+            print(f"Fetch Tour Error: {e}")
+            return None
+
+    # tour_infos = [extract_basic_tour_info(div) for div in tqdm(
+    #     tour_list[0:10], desc="Extracting tour basic info", unit="") if div]
+    tour_infos = [extract_basic_tour_info(div) for div in tqdm(
+        tour_list, desc="Extracting tour basic info", unit="") if div]
+    tour_infos = [info for info in tour_infos if info]
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = [executor.submit(build_tour, info) for info in tour_infos]
+
+        for future in tqdm(as_completed(futures), total=len(futures), desc="Extracting tour detailed info", unit=""):
+            try:
+                # if os.name == 'nt': # For Windows
+                #     os.system('cls')
+                # else: # For macOS and Linux (posix)
+                #     os.system('clear')
+
+                result = future.result()
+                if result:
+                    tours.append(result)
+            except Exception as e:
+                print(f"Error in thread: {e}")
+    return [tour for tour in tours if tour]
 
 
 def fetch_tours(url: str, data_name: str):
     try:
-        options = Options()
-        options.add_argument("--headless")
-        options.add_argument(
-            "--disable-blink-features=AutomationControlled")
-        options.add_argument(
-            "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
-
-        driver = webdriver.Chrome(options=options)
+        driver = webdriver.Chrome(options=options, service=service)
         driver.get(url)
         time.sleep(page_loading_delay_time*2)  # Wait JS render
         raw_data = driver.page_source
         driver.close()
 
         data = get_tours_from_html(raw_data)
-        cache.set(data_name, data, expire=3600)
+        cache.set(data_name, data, expire=36000)
         return data
     except Exception as e:
-        return ""
+        print(e)
+        return []

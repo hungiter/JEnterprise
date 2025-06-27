@@ -1,17 +1,36 @@
 // app/src/services/tour/TourService.ts
-import axios from 'axios'
 import type { TourSummary } from '@/src/dtos/tour.dto'
-import { API_TOUR_BASE } from '../api_info'
+import api, { API_TOUR_BASE } from '../api_info';
+import axios from 'axios';
 
 export const fetchSummaryTours = async (tourCodes: string[]): Promise<TourSummary[]> => {
     const res = await axios.post<TourSummary[]>(`${API_TOUR_BASE}/summary_tours`,
         { "tour_codes": tourCodes }, // đây là phần body
         {
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                "ngrok-skip-browser-warning": "true"
             }
         }
     );
-    console.log(res.data);
+
+    // const res = await api.post<TourSummary[]>(`tours/summary_tours`,
+    //     { "tour_codes": tourCodes }
+    // );
+    // console.log(res.data);
+    return res.data
+}
+
+export const fetchSummaryToursByTags = async (tags: string[]): Promise<TourSummary[]> => {
+    const res = await axios.post<TourSummary[]>(`${API_TOUR_BASE}/summary_tours`,
+        { "tour_codes": tags }, // đây là phần body
+        {
+            headers: {
+                'Content-Type': 'application/json',
+                "ngrok-skip-browser-warning": "true"
+            }
+        }
+    );
+    // console.log(res.data);
     return res.data
 }

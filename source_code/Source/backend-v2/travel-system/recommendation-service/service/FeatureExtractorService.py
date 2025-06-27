@@ -1,4 +1,6 @@
+import pickle
 import re
+import sys
 import time
 import json
 from bs4 import BeautifulSoup
@@ -6,12 +8,13 @@ from typing import List
 
 from pymongo import UpdateOne
 from pymongo.errors import PyMongoError
-from index import cache, cache_duration, mongo_client, print_new_message, clear_message, force_extract_feature
+from tqdm import tqdm
+from index import is_docker, verbose, cache, cache_duration, mongo_client, print_new_message, clear_message, force_extract_feature
 from bson.json_util import dumps
 from fastapi.responses import JSONResponse
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from models.TourModel import TourFeature
+from models.TourModel import Tour, TourFeature
 from service.TourService import dict_to_tour_model
 from py_vncorenlp.vncorenlp import tag_extractor
 DB_NAME = "JEnterprise"
@@ -22,6 +25,7 @@ tour_features_cache = "cache_tour_features"
 tour_cache = "cache_tour"
 location_word_cache = "cache_location_word"
 wait_tour_feature_extractor_executors = ThreadPoolExecutor(max_workers=1)
+feature_cache_file = "storage_features_main.pickle"
 
 future = None
 sleep_time = 0.1
@@ -36,13 +40,17 @@ extract_features_status = {
 
 def build_features_cache_index():
     index = {}
-    if tour_features_cache in cache:
-        cache_data = cache[tour_features_cache]
+    # # DISKCACHE
+    # if tour_features_cache in cache:
+    #     cache_data = cache[tour_features_cache]
+    # CacheManager
+    if cache.has(tour_features_cache):
+        cache_data = cache.get(tour_features_cache)
         for item in cache_data:
             obj = item if isinstance(
                 item, TourFeature) else TourFeature(**item)
-            key = (obj.city, obj.country, obj.admin_name, obj.heritage)
-            index[key] = obj
+            print(obj)
+            index[obj.tour_code] = obj
     return index
 
 
@@ -57,7 +65,7 @@ def dict_to_tour_feature_model(item):
     return None  # hoặc raise tùy logic bạn muốn
 
 
-def initialize_heritage_cache():
+def initialize_features_cache():
     try:
         db = mongo_client[DB_NAME]
         collection = db[TOURS_FEATURES_TABLE]
@@ -66,9 +74,11 @@ def initialize_heritage_cache():
         data = []
         chunk_size = 5000
 
-        print_new_message("Dictionary cache initialize...\n")
+        total_docs = collection.count_documents({})
+        progress_bar = tqdm(
+            total=total_docs, desc="Initializing Dictionary Features Cache", file=sys.stdout)
+
         while True:
-            print_new_message("Continue initialize...\n")
             query = {"_id": {"$gt": last_id}} if last_id else {}
             cursor = collection.find(query).sort("_id").batch_size(1000)
 
@@ -89,10 +99,15 @@ def initialize_heritage_cache():
             data.extend(new_data)
 
             last_id = chunk[-1]["_id"]  # save last processed ID
+            progress_bar.update(len(chunk))  # update progress bar
 
             # Update cache every chunk (optional)
             if data:
-                cache.set(tour_features_cache, data, expire=cache_duration)
+                # # DISKCACHE
+                # cache.set(tour_features_cache, data, expire=cache_duration)
+                # CacheManager
+                cache.set(tour_features_cache, data)
+        progress_bar.close()
 
     except Exception as e:
         print_new_message(f"Initialize Heritage Cache Error\n{e}")
@@ -113,8 +128,9 @@ def save_features(data: List[TourFeature]):
             need_update = False
             existing_locations = []
 
-            primary_key = (feature.tour_code)
-            existed_feature = feature_index.get(primary_key)
+            primary_key = {"tour_code": feature.tour_code}
+            existed_feature_dict = feature_index.get(feature.tour_code)
+            existed_feature = dict_to_tour_feature_model(existed_feature_dict)
             try:
                 if existed_feature:
                     print_new_message(
@@ -130,19 +146,19 @@ def save_features(data: List[TourFeature]):
 
             if existed_feature:
                 existing_locations = existed_feature.locations
-                if existing_locations != [] and feature.locations not in existing_locations:
-                    for item in feature.locations:
-                        if item not in existing_locations:
-                            need_update = True
-                            continue
-                extract_features_status[
-                    "message"] = f"{prefix}-Update object {primary_key}"
+                for item in feature.locations:
+                    if item not in existing_locations:
+                        need_update = True
+                        break
+                extract_features_status["message"] = f"{prefix}-Update object {feature.tour_code}"
             else:
                 need_update = True
-                extract_features_status["message"] = "{prefix}-Add new object"
+                extract_features_status["message"] = f"{prefix}-Add new object"
 
             if need_update == True:
                 if feature.locations:
+                    locations = set(existing_locations + feature.locations)
+                    print(locations)
                     feature.locations = list(
                         set(existing_locations + feature.locations))
 
@@ -151,10 +167,18 @@ def save_features(data: List[TourFeature]):
                     {"$set": feature.dict()},
                     upsert=True
                 ))
+
+        # CACHE SAVED
+        # # DISKCACHE
+        # cache.set(tour_features_cache, data, expire=cache_duration*7)
+        # CacheManager
+        cache.set(tour_features_cache, data)
+        with open(feature_cache_file, 'wb') as f:
+            pickle.dump(data, f)
+
+        # MONGO SAVE
         if bulk_ops:
             collection.bulk_write(bulk_ops, ordered=False)
-
-        cache.set(tour_features_cache, data, expire=cache_duration)
         return True
     except Exception as e:
         print_new_message(f"save_features.mongo_error: {e}")
@@ -162,22 +186,30 @@ def save_features(data: List[TourFeature]):
 
 
 def save_features_from_cache():
-
     try:
         print_new_message("save_features_from_cache.on_check_cache_existed")
-        if tour_features_cache in cache:
+        # # DISKCACHE
+        # if tour_features_cache in cache:
+        #     data = cache[tour_features_cache]
+        # CacheManager
+        if cache.has(tour_features_cache):
+            data = cache.get(tour_features_cache)
             print_new_message(
                 "save_features_from_cache.create_list_for_save")
-            data = cache[tour_features_cache]
+
             list_features = []
             if data:
+                # # DISKCACHE
+                # cache.set(tour_features_cache, data, expire=cache_duration*7)
+                # CacheManager
+                cache.set(tour_features_cache, data)
                 for item in data:
                     try:
                         feature = TourFeature(
                             tour_code=item.get("tour_code", ""),
                             locations=item.get("locations", []),
                             activities=item.get("activities", []),
-                            activities=item.get("words", []),
+                            words=item.get("words", []),
                         )
 
                         list_features.append(feature)
@@ -212,10 +244,17 @@ def save_features_from_cache():
 
 
 def analyze_process():
-    if tour_cache in cache and location_word_cache in cache:
+    # # DISKCACHE
+    # if tour_cache in cache and location_word_cache in cache:
+    # CacheManager
+    if cache.has(tour_cache) and cache.has(location_word_cache):
         try:
-            tours = cache[tour_cache]
-            location_words = cache[location_word_cache]
+            # # DISKCACHE
+            # tours = cache[tour_cache]
+            # location_words = cache[location_word_cache]
+            # CacheManager
+            tours = cache.get(tour_cache)
+            location_words = cache.get(location_word_cache)
 
             tour_features: List[TourFeature] = []
             extract_features_status["step"] = "location_feature_extract"
@@ -237,10 +276,12 @@ def analyze_process():
             multi_pattern = re.compile(
                 r'\b(?:' + '|'.join(escaped_multi) + r')\b')
 
-            for i, tour in enumerate(tours):
-                tour_model = dict_to_tour_model(tour)
+            curr = 0
+            total = len(tours)
+
+            def process_tour(i: int, tour_model: Tour | None):
                 if tour_model:
-                    extract_features_status["message"] = f"{i+1}/{len(tours)} - {tour_model.tour_code}"
+                    # extract_features_status["message"] = f"{i+1}/{len(tours)} - {tour_model.tour_code}"
                     tour_title = tour_model.title or ""
                     trip_plan = ""
                     trip_plans = tour_model.tour_detail.trip_plan or []
@@ -254,7 +295,6 @@ def analyze_process():
                         except Exception as e:
                             print(e)
                             break
-
                     # LOCATION EXTRACTOR ===================================START
                     content = f"{tour_title} {trip_plan}"
                     content_lower = content.lower()
@@ -309,6 +349,10 @@ def analyze_process():
                     try:
                         words_extract_result = tag_extractor(trip_plan)
                         words = words_extract_result["result"]
+
+                        # Title parts
+                        title_parts = re.split(r'[,:-]', tour_title)
+                        words = words + [p.strip() for p in title_parts]
                     except:
                         pass
                     # VNCORENLP WORDS EXTRACTOR ============================END
@@ -321,15 +365,33 @@ def analyze_process():
                     )
                     tour_features.append(tour_feature.dict())
 
-                # Ghi cache sau khi hoàn tất
-                if tour_features:
-                    cache.set(tour_features_cache, tour_features,
-                              expire=cache_duration)
+                    return f"Tour {tour_model.tour_code}'s extracted finished"
+                return None
+
+            extract_features_status["message"] = "Start Feature Extractor"
+            with ThreadPoolExecutor(max_workers=10) as executor:
+                futures = [executor.submit(process_tour, i, dict_to_tour_model(tour))
+                           for i, tour in enumerate(tours)]
+                if verbose:
+                    for future in as_completed(futures):
+                        result = future.result()
+                        if result:
+                            curr = curr + 1
+                            progress = round((curr / total) * 100, 2)
+                            message = f"{progress}% - {result}"
+                            extract_features_status["message"] = message
+                else:
+                    for future in tqdm(as_completed(futures), total=len(futures), desc="Feature Extracting", file=sys.stdout):
+                        result = future.result()
+
+            # Ghi cache sau khi hoàn tất
             if tour_features:
+                print("SAVED TOUR FEATURES")
+                # # DISKCACHE
+                # cache.set(tour_features_cache, tour_features, expire=cache_duration)
+                # CacheManager
+                cache.set(tour_features_cache, tour_features)
                 save_features(tour_features)
-            # message = {"status": "success",
-            #            "tours": f"{len(tours)}", "location_words": f"{len(location_words)}", "tour_features": tour_features}
-            # print_new_message(f"{message}")
             return tour_features
         except Exception as e:
             message = {"status": "error", "message": f"{e}"}
@@ -342,67 +404,90 @@ def analyze_process():
 
 
 def analyze_tour_features(step_name: str, step_alias: str):
-    global future, sleep_time
-    try:
-        # Step 1: If not in cache → fetch from DB
-        dictionary_execute = False
-        if tour_features_cache not in cache or force_extract_feature == True:
-            if future:
-                print_new_message("analyze_tour_features.coutinue_analyze")
+    if not is_docker:
+        global future, sleep_time
+        try:
+            # Step 1: If not in cache → fetch from DB
+            dictionary_execute = False
+            if not cache.has(tour_features_cache) or force_extract_feature == True:
+                if future:
+                    print_new_message("analyze_tour_features.coutinue_analyze")
+                else:
+                    print_new_message("analyze_tour_features.start_analyze")
+                    dictionary_execute = True
+                    future = wait_tour_feature_extractor_executors.submit(
+                        analyze_process)
             else:
-                print_new_message("analyze_tour_features.start_analyze")
-                dictionary_execute = True
-                future = wait_tour_feature_extractor_executors.submit(
-                    analyze_process)
-        else:
-            save_features_from_cache()
-        if future:
-            while True:
-                try:
-                    if future.done():
-                        result = future.result()
-                        if result:
-                            payload = {"step": step_name, "step_alias": step_alias, "data": {
-                                "status": "success", "source": "live"}}
-                            message = f"{json.dumps(payload, default=str)}"
-                            print_new_message(
-                                f"analyze_tour_features.future_result: {message}")
+                save_features_from_cache()
+            if future:
+                while True:
+                    try:
+                        if future.done():
+                            result = future.result()
+                            if result:
+                                payload = {"step": step_name, "step_alias": step_alias, "data": {
+                                    "status": "success", "source": "live"}}
+                                message = f"{json.dumps(payload, default=str)}"
+                                print_new_message(
+                                    f"analyze_tour_features.future_result: {message}")
+                                save_features_from_cache()
+                            else:
+                                payload = {"step": step_name, "step_alias": step_alias, "data": {
+                                    "status": "error", "source": "live", "message": "No data found"}}
+                                message = f"{json.dumps(payload, default=str)}"
+                                print_new_message(
+                                    f"analyze_tour_features.future_result: {message}")
+                            future = None
+                            break
                         else:
-                            payload = {"step": step_name, "step_alias": step_alias, "data": {
-                                "status": "error", "source": "live", "message": "No data found"}}
-                            message = f"{json.dumps(payload, default=str)}"
+                            # payload = {"step": step_name, "step_alias": step_alias,
+                            #            "data": {"status": "waiting", "step": extract_features_status["step"], "message": extract_features_status["message"]}}
+                            # message = f"{json.dumps(payload, default=str)}"
+                            message = extract_features_status["message"]
                             print_new_message(
-                                f"analyze_tour_features.future_result: {message}")
-                        future = None
-                        break
-                    else:
-                        payload = {"step": step_name, "step_alias": step_alias,
-                                   "data": {"status": "waiting", "step": extract_features_status["step"], "message": extract_features_status["message"]}}
+                                f"analyze_tour_features.future_waiting: {message}")
+                            # time.sleep(sleep_time)
+                    except Exception as e:
+                        payload = {"step": step_name,  "step_alias": step_alias, "data": {"status": "error"},
+                                   "message": f"Something went wrong {e}"}
                         message = f"{json.dumps(payload, default=str)}"
                         print_new_message(
-                            f"analyze_tour_features.future_waiting: {message}")
-                        # time.sleep(sleep_time)
-                except Exception as e:
-                    payload = {"step": step_name,  "step_alias": step_alias, "data": {"status": "error"},
-                               "message": f"Something went wrong {e}"}
-                    message = f"{json.dumps(payload, default=str)}"
-                    print_new_message(
-                        f"analyze_tour_features.finished_future_check_error: {message}")
-                    break
-        if dictionary_execute == True:
-            print_new_message("analyze_tour_features.finished_create_dict")
-        else:
-            print_new_message("analyze_tour_features.finished_get_dict")
-    except Exception as e:
-        payload = {"step": step_name,  "step_alias": step_alias, "data": {"status": "error"},
-                   "message": f"Something went wrong {e}"}
-        message = f"{json.dumps(payload, default=str)}"
-        print_new_message(
-            f"analyze_tour_features.finished_create_dict_error: {message}")
-        clear_message()
+                            f"analyze_tour_features.finished_future_check_error: {message}")
+                        break
+            if dictionary_execute == True:
+                print_new_message("analyze_tour_features.finished_create_dict")
+            else:
+                print_new_message("analyze_tour_features.finished_get_dict")
+        except Exception as e:
+            payload = {"step": step_name,  "step_alias": step_alias, "data": {"status": "error"},
+                       "message": f"Something went wrong {e}"}
+            message = f"{json.dumps(payload, default=str)}"
+            print_new_message(
+                f"analyze_tour_features.finished_create_dict_error: {message}")
+            clear_message()
+    else:
+        with open(feature_cache_file, 'rb') as f:
+            try:
+                features = pickle.load(f)
+                # # DISKCACHE
+                # cache.set(tour_features_cache, features, expire=cache_duration*7)
+                # CacheManager
+                if isinstance(features, list) and all(isinstance(f, TourFeature) for f in features):
+                    print("⏳ Save pickle data to cache manager")
+                    cache.set(tour_features_cache, [
+                              f.to_dict() for f in features])
+            except Exception as e:
+                print(e)
 
 
 def get_cache_tour_features():
-    if tour_features_cache in cache:
-        return JSONResponse(content=json.loads(dumps({"status": "success", "data": cache[tour_features_cache]})))
+    # # DISKCACHE
+    # if tour_features_cache in cache:
+    #     data = cache[tour_features_cache]
+    # CacheManager
+    if cache.has(tour_features_cache):
+        data = cache.get(tour_features_cache)
+        if not data:
+            return JSONResponse(content=json.loads(dumps({"status": "error", "message":  "Cache empty"})))
+        return JSONResponse(content=json.loads(dumps({"status": "success", "data": data})))
     return JSONResponse(content=json.loads(dumps({"status": "error", "message": "Not have tour features in cache"})))

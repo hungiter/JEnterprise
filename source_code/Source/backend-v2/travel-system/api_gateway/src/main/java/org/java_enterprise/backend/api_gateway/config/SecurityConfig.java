@@ -12,7 +12,8 @@ public class SecurityConfig {
             "/api/auth/**",
             "/api/users/**",
             "/api/tours/**",
-            "/api/ai/**"
+            "/api/ai/**",
+            "/api/pay/**"
     };
 
     @Bean

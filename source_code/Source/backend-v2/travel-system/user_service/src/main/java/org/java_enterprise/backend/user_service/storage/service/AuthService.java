@@ -39,7 +39,6 @@ public class AuthService {
             return AuthResponse.builder()
                     .success(false)
                     .message("Vui lòng kiểm tra lại thông tin tài khoản")
-                    .data(null)
                     .error(authError)
                     .build();
         }
@@ -48,7 +47,13 @@ public class AuthService {
         user.setEmail(request.getEmail());
         user.setUsername(request.getUsername());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole("User");
+        String requestRole = request.getRole();
+        if (requestRole != null && !requestRole.isEmpty()) {
+            user.setRole(requestRole);
+        } else {
+            user.setRole("User");
+        }
+
         userService.createUser(user);
 
         String jwtToken = jwtService.generateToken(request.getUsername());
@@ -77,11 +82,9 @@ public class AuthService {
             return AuthResponse.builder()
                     .success(false)
                     .message(errorMessage)
-                    .data(null)
                     .error(authError)
                     .build();
         }
-
 
         User user = userOpt.get();
         String jwtToken = jwtService.generateToken(username);
@@ -96,6 +99,38 @@ public class AuthService {
                 .success(true)
                 .message("Đăng nhập thành công")
                 .data(authData)
+                .build();
+    }
+
+    public AuthResponse changePassword(String username, String oldPassword, String newPassword) {
+        Optional<User> userOpt = userService.getUserByUsername(username);
+        if (userOpt.isEmpty() || !passwordEncoder.matches(oldPassword, userOpt.get().getPassword())) {
+            String errorMessage = "Sai thông tin tài khoản!";
+            AuthError authError = AuthError.builder()
+                    .server(errorMessage)
+                    .build();
+            return AuthResponse.builder()
+                    .success(false)
+                    .message(errorMessage)
+                    .error(authError)
+                    .build();
+        }
+
+        User user = userOpt.get();
+        user.setPassword(passwordEncoder.encode(newPassword));
+
+        userService.updateUser(userOpt.get().getId(), user);
+
+        return AuthResponse.builder()
+                .success(true)
+                .message("Đổi mật khẩu thành công")
+                .build();
+    }
+
+    public AuthResponse logout(String username) {
+        return AuthResponse.builder()
+                .success(true)
+                .message("Đăng xuất thành công")
                 .build();
     }
 }

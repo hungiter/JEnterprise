@@ -37,8 +37,8 @@ const SimilarTourCard = ({ tour }: { tour: TourSummary }) => {
             <div className="absolute inset-0 z-10 bg-gradient-to-t from-white via-white/90 pb-[40px] to-transparent flex flex-col opacity-0 group-hover:opacity-100 transition-opacity duration-300">
 
                 {/* Scrollable Info */}
-                <div className="p-2 flex-1 overflow-y-auto pr-1 text-sm text-gray-800 space-y-2">
-                    <p className="font-bold text-">Chương trình({tour.tour_code}): <span className="text-gray-600 font-normal">{tour.title}</span></p>
+                <div className="p-2 flex-1 overflow-y-auto pr-1 text-sm text-white space-y-2">
+                    <p className="font-bold">Chương trình({tour.tour_code}): <span className="text-white font-normal">{tour.title}</span></p>
                     {/* You can add more scrollable content here if needed */}
                 </div>
 
@@ -50,12 +50,12 @@ const SimilarTourCard = ({ tour }: { tour: TourSummary }) => {
             </div>
 
             {/* Bottom Panel (Always visible) */}
-            <div className="h-[40px] bg-white px-4 py-3 flex justify-between items-center border-t relative z-20">
+            <div className="h-[40px] w-full lg:w-max bg-white px-4 py-3 flex justify-between items-center border-t relative z-20">
                 <div className="text-red-600 font-bold text-lg">
                     Giá từ <span className="text-xl">{tour.price}</span>
                 </div>
                 <Link to={`/tours/${tour.tour_code}`}>
-                    <div className="text-blue-600 font-semibold hover:underline flex items-center gap-1">
+                    <div className="text-blue-600 font-semibold hover:underline flex items-center gap-1 ms-4">
                         Xem chi tiết →
                     </div>
                 </Link>

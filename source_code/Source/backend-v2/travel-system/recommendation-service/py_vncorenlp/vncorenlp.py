@@ -1,4 +1,5 @@
 import re
+import sys
 import time
 import jnius_config
 import os
@@ -9,24 +10,30 @@ from fastapi import FastAPI
 import json
 
 from pydantic import BaseModel
+from pymongo.errors import PyMongoError
+from pymongo import UpdateOne
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 import string
 import pandas as pd
 import ast
 from collections import Counter
+from tqdm import tqdm
 from underthesea import word_tokenize, pos_tag
-from index import cache
+from index import cache, clear_terminal, mongo_client, print_new_message
 from functools import lru_cache
 
+
+DB_NAME = "JEnterprise"
+TAGS_TABLE = "tags"
 cache_name = "article_tags"
 model = None
 raw_df = None
 punctuations = []
 unique_tags = []
 processe_data_state = {
-    "step": "sleep",
-    "message": "Sleep",
+    "step": "",
+    "message": "",
     "error": ""
 }
 
@@ -138,27 +145,125 @@ def get_vncorenlp_instance():
     )
 
 
+def chunked(iterable, chunk_size):
+    """Chia iterable thành các phần nhỏ"""
+    iterable = list(iterable)  # đảm bảo có thể slicing
+    return [iterable[i:i + chunk_size] for i in range(0, len(iterable), chunk_size)]
+
+
+def save_mongo_tags(tags: list[str]):
+    new_tags = set(tags)
+    existed_tags = set(get_mongo_tags())
+    if len(existed_tags) > 0:
+        return
+
+    while True:
+        clear_terminal()
+        unknown_tags = new_tags - existed_tags
+        total_unknown_tags = len(unknown_tags)
+
+        if total_unknown_tags == 0:
+            break
+
+        try:
+            db = mongo_client[DB_NAME]
+            collection = db[TAGS_TABLE]
+
+            chunk_size = total_unknown_tags // 10 or 1
+            if chunk_size > 100:
+                chunk_size = 100
+            tag_chunks = chunked(list(unknown_tags), chunk_size)
+            try:
+                for chunk in tqdm(tag_chunks, total=len(tag_chunks), desc="Saving Tags", unit="chunk", file=sys.stdout):
+                    bulk_ops = [
+                        UpdateOne(
+                            {"value": tag},
+                            {"$set": {"value": tag}},
+                            upsert=True
+                        )
+                        for tag in chunk
+                    ]
+                    collection.bulk_write(bulk_ops, ordered=False)
+                    existed_tags = set(list(existed_tags) + chunk)
+            except Exception as e:
+                pass
+
+            unknown_tags = new_tags - existed_tags
+            total_unknown_tags = len(unknown_tags)
+            if total_unknown_tags == 0:
+                break
+        except Exception as e:
+            print(f"❌ MongoDB error while saving tags: {e}")
+
+
+def get_mongo_tags() -> list[str]:
+    try:
+        db = mongo_client[DB_NAME]
+        collection = db[TAGS_TABLE]
+
+        total_tags = collection.count_documents({})
+        if total_tags == 0:
+            return []
+
+        chunk_size = min(total_tags // 10 or 1, 10000)
+        tags = []
+        last_id = None
+
+        with tqdm(total=total_tags, desc="Loading MongoDB.Tags", unit="tag", file=sys.stdout) as progress_bar:
+            while True:
+                try:
+                    query = {"_id": {"$gt": last_id}} if last_id else {}
+                    cursor = collection.find(query, {"value": 1}).sort(
+                        "_id").limit(chunk_size)
+
+                    chunk = list(cursor)
+                    if not chunk:
+                        break
+
+                    tags.extend(doc["value"]
+                                for doc in chunk if "value" in doc)
+                    last_id = chunk[-1]["_id"]
+                    progress_bar.update(len(chunk))
+                except Exception as e:
+                    print(f"❌ MongoDB error while reading tags: {e}")
+        return tags
+    except Exception as e:
+        print(f"❌ MongoDB error while reading tags: {e}")
+        return []
+
+
 def create_nlp_model():
     global model, punctuations, raw_df, unique_tags
-    if len(punctuations) == 0 or raw_df == None:
-        processe_data_state["step"] = "load_data_from_csv"
-        processe_data_state["message"] = "Đang xử lí dữ liệu từ data mẫu..."
-        punctuations = set(string.punctuation)
-
-        if cache_name in cache:
-            unique_tags = cache[cache_name]
-        else:
-            raw_df = pd.read_csv("./Dataset_articles_NoID.csv")
-            raw_df['Tags'] = raw_df['Tags'].apply(ast.literal_eval)
-            unique_tags = set(
-                tag for tags_list in raw_df['Tags'] for tag in tags_list)
-            cache.set(cache_name, unique_tags, 604800)  # 7 days updated
-        print(len(unique_tags))
-
     if model is None:  # double check inside lock
         processe_data_state["step"] = "load_model"
         processe_data_state["message"] = "Đang load model..."
         model = get_vncorenlp_instance()
+
+    if len(punctuations) == 0 or raw_df == None:
+        punctuations = set(string.punctuation)
+
+        # # DISKCACHE
+        # if cache_name in cache:
+        #   unique_tags = cache[cache_name]
+        # CacheManager
+        if cache.has(cache_name):
+            unique_tags = cache.get(cache_name)
+        else:
+            unique_tags = set([])
+
+            unique_tags = set(get_mongo_tags())
+            if len(unique_tags) == 0:
+                processe_data_state["step"] = "load_data_from_csv"
+                processe_data_state["message"] = "Đang xử lí dữ liệu từ data mẫu..."
+                raw_df = pd.read_csv("./Dataset_articles_NoID.csv")
+                raw_df['Tags'] = raw_df['Tags'].apply(ast.literal_eval)
+                unique_tags = set(
+                    tag for tags_list in raw_df['Tags'] for tag in tags_list)
+                save_mongo_tags(unique_tags)
+            # # DISKCACHE
+            # cache.set(cache_name, unique_tags, 604800)  # 7 days updated
+            # CacheManager
+            cache.set(cache_name, unique_tags)
     processe_data_state["step"] = ""
     processe_data_state["message"] = ""
     return True

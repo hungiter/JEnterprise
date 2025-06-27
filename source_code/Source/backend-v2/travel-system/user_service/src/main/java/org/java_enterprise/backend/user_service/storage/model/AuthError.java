@@ -16,4 +16,7 @@ public class AuthError {
     private String password;
     private String otp;
     private String server;
+
+    private String oldPassword;
+    private String newPassword;
 }
