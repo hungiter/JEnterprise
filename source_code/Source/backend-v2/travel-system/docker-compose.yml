@@ -1,0 +1,161 @@
+#version: '3.8'
+#services:
+#  api-gateway:
+#    build:
+#      context: ./api_gateway
+#    container_name: api-gateway
+#    ports:
+#      - "8080:8080"
+#    depends_on:
+#      - tour-service
+#      - user-service
+#      - guide-service
+#    networks:
+#      - app-network
+#    command: ["java", "-jar", "/app.jar", "--server.port=8080", "--server.address=0.0.0.0"]
+#  user-service:
+#    build:
+#      context: ./user_service
+#    container_name: user-service
+#    ports:
+#      - "8081:8081"
+#    networks:
+#      - app-network
+#    command: ["java", "-jar", "/app.jar", "--server.port=8081", "--server.address=0.0.0.0"]
+#  tour-service:
+#    build:
+#      context: ./tour_service
+#    container_name: tour-service
+#    ports:
+#      - "8082:8082"
+#    networks:
+#      - app-network
+#    command: ["java", "-jar", "/app.jar", "--server.port=8082", "--server.address=0.0.0.0"]
+#  guide-service:
+#    build:
+#      context: ./guide_service
+#    container_name: guide-service
+#    ports:
+#      - "8083:8083"
+#    networks:
+#      - app-network
+#    command: ["java", "-jar", "/app.jar", "--server.port=8083", "--server.address=0.0.0.0"]
+#  # Recommendation service (Python)
+#  recommendation-service:
+#    build:
+#      context: ./recommendation-service
+#    container_name: recommendation-service
+#    ports:
+#      - "5000:5000"
+#    networks:
+#      - app-network
+#    environment:
+#      - FLASK_APP=app.py
+#      - FLASK_RUN_HOST=0.0.0.0
+#
+#networks:
+#  app-network:
+#    driver: bridge
+
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - api-gateway
+      - recommendation-service
+    networks:
+      - app-network
+
+  api-gateway:
+    build:
+      context: ./api_gateway
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    volumes:
+      - h2data:/data/h2db
+    depends_on:
+      - tour-service
+      - user-service
+      - guide-service
+    networks:
+      - app-network
+    command: [ "java", "-jar", "/app.jar", "--server.port=8080", "--server.address=0.0.0.0" ]
+
+  user-service:
+    build:
+      context: ./user_service
+    container_name: user-service
+    ports:
+      - "8081:8081"
+    networks:
+      - app-network
+    command: [ "java", "-jar", "/app.jar", "--server.port=8081", "--server.address=0.0.0.0" ]
+
+  tour-service:
+    build:
+      context: ./tour_service
+    container_name: tour-service
+    ports:
+      - "8082:8082"
+    networks:
+      - app-network
+    command: [ "java", "-jar", "/app.jar", "--server.port=8082", "--server.address=0.0.0.0" ]
+
+  guide-service:
+    build:
+      context: ./guide_service
+    container_name: guide-service
+    ports:
+      - "8083:8083"
+    networks:
+      - app-network
+    command: [ "java", "-jar", "/app.jar", "--server.port=8083", "--server.address=0.0.0.0" ]
+
+  vnpay-service:
+    build:
+      context: ./vnpay_service
+    container_name: vnpay-service
+    ports:
+      - "8088:8088"
+    networks:
+      - app-network
+    command: [ "java", "-jar", "/app.jar", "--server.port=8088", "--server.address=0.0.0.0" ]
+
+  recommendation-service:
+    build:
+      context: ./recommendation-service
+    container_name: recommendation-service
+    volumes:
+      - rec_cache:/app/cache
+    ports:
+      - "5000:5000"  # Local access for testing, optional
+    networks:
+      - app-network
+    command: [ "uvicorn", "main:app", "--host=0.0.0.0", "--port=5000" ]
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: ngrok
+    depends_on:
+      - nginx
+    environment:
+      NGROK_AUTHTOKEN: 2xRJnO0Xt2jJtsEuUYR9KYa4gQ5_5N9ox757h1qf3TVoRQjs6
+    command: http --domain=ultimately-flowing-stag.ngrok-free.app nginx:80
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  h2data:
+  rec_cache:

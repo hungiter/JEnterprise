@@ -1,0 +1,103 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>user_service</artifactId>
+    <version>1.0</version>
+
+    <parent>
+        <groupId>org.java_enterprise.backend</groupId>
+        <artifactId>travel-system</artifactId>
+        <version>1.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>  <!-- Reference to parent pom.xml -->
+    </parent>
+
+    <dependencies>
+        <!-- Different dependencies here -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-mongodb</artifactId>
+        </dependency>
+
+        <!-- JJWT 0.11.5 mới nhất (bắt buộc 3 phần) -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId> <!-- sử dụng Jackson để parse JSON trong token -->
+            <scope>runtime</scope>
+        </dependency>
+        <!--    Mail Sender    -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+        <!--    Validator    -->
+        <dependency>
+            <groupId>org.hibernate.validator</groupId>
+            <artifactId>hibernate-validator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>javax.validation</groupId>-->
+<!--            <artifactId>validation-api</artifactId>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>org.glassfish</groupId>-->
+<!--            <artifactId>jakarta.el</artifactId>-->
+<!--        </dependency>-->
+    </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>3.2.4</version> <!-- Add the appropriate version -->
+                <!-- Important to generate executable jar -->
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <mainClass>org.java_enterprise.backend.user_service.UserServiceApplication</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
